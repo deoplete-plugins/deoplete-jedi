@@ -59,7 +59,7 @@ class Source(Base):
             try:
                 script = self.get_script(source=source, column=column)
                 completions = script.completions()
-#
+
                 out = []
                 for c in completions:
                     d = dict(word=c.complete,
