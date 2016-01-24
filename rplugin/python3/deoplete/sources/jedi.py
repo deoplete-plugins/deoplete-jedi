@@ -37,7 +37,7 @@ class Source(Base):
         if column is None:
             column = self.vim.current.window.cursor[1]
         buf_path = self.vim.current.buffer.name
-        encoding = self.vim.eval('&encoding') or 'utf-8'
+        encoding = self.vim.eval('&encoding')
 
         return jedi.Script(source, row, column, buf_path, encoding)
 
