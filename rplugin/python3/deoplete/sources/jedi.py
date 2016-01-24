@@ -75,8 +75,12 @@ class Source(Base):
 
             out = []
             for c in completions:
+                if c.type == 'function':
+                    abbr = re.sub('"(|)",', '', c.docstring().split("\n\n")[0].replace('\n', ' '))
+                else:
+                    abbr = c.name
                 d = dict(word=c.complete,
-                         abbr=c.name,
+                         abbr=str(abbr),
                          kind=c.description,
                          info=c.docstring(),
                          icase=1,
