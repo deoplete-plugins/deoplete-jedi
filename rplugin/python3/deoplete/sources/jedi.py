@@ -77,7 +77,7 @@ class Source(Base):
             for c in completions:
                 if c.type == 'function' and re.match(c.name, c.docstring()):
                     word = c.complete + '('
-                    abbr = re.sub('"(|)",', '', c.docstring().split("\n\n")[0].replace('\n', ' '))
+                    abbr = re.sub('"(|)",|  ', '', c.docstring().split("\n\n")[0].replace('\n', ' '))
                 else:
                     word = c.complete
                     abbr = c.name
