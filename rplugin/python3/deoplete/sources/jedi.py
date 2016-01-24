@@ -25,9 +25,11 @@ class Source(Base):
         return self.completions(0, 0)
 
     def get_script(self, source=None, column=None):
-        # ?
+        # http://jedi.jedidjah.ch/en/latest/docs/settings.html
         jedi.settings.additional_dynamic_modules = \
             [b.name for b in self.vim.buffers if b.name is not None and b.name.endswith('.py')]
+        jedi.settings.add_dot_after_module = True
+        jedi.settings.add_bracket_after_function = True
 
         if source is None:
             source = '\n'.join(self.vim.current.buffer)
@@ -60,7 +62,7 @@ class Source(Base):
             for c in completions:
                 d = dict(word=c.complete,
                          abbr=c.name,
-                         menu=c.description,
+                         kind=c.description,
                          info=c.docstring(),
                          icase=1,
                          dup=1
