@@ -3,14 +3,14 @@
 " NeoBundle
 set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/deoplete.nvim
 set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/deoplete-jedi
-set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/Shougo/neco-syntax
-set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/Shougo/neoinclude.vim
+set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/neco-syntax
+set runtimepath+=$XDG_CONFIG_HOME/nvim/bundle/neoinclude.vim
 
 " vim-plug
 set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/deoplete.nvim
 set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/deoplete-jedi
-set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/Shougo/neco-syntax
-set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/Shougo/neoinclude.vim
+set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/neco-syntax
+set runtimepath+=$XDG_CONFIG_HOME/nvim/plugged/neoinclude.vim
 
 set completeopt+=noinsert,noselect
 set completeopt-=preview
