@@ -1,12 +1,12 @@
 import traceback
 import re
-import deoplete.util
 import jedi
 
 from .base import Base
 
 
 class Source(Base):
+
     def __init__(self, vim):
         Base.__init__(self, vim)
 
@@ -15,7 +15,12 @@ class Source(Base):
         self.filetypes = ['python']
         self.rank = 1000
         self.min_pattern_length = 0
-        self.input_pattern = r'[^. \t0-9]\.\w*|^\s*@\w*|^\s*from\s.+import \w*|^\s*from \w*|^\s*import \w*'
+        self.input_pattern = \
+            r'[^. \t0-9]\.\w*|\
+            ^\s*@\w*|\
+            ^\s*from\s.+import \w*|\
+            ^\s*from \w*|\
+            ^\s*import \w*'
         self.is_bytepos = True
 
     def get_complete_position(self, context):
@@ -31,7 +36,7 @@ class Source(Base):
 
         if source is None:
             source = '\n'.join(self.vim.current.buffer)
-        row = self.vim.current.window.cursor[0]
+        # row = self.vim.current.window.cursor[0]
 
         if column is None:
             column = self.vim.current.window.cursor[1]
@@ -70,7 +75,6 @@ class Source(Base):
                              dup=1
                              )
                     out.append(d)
-
 
             except Exception:
                 print(traceback.format_exc())
