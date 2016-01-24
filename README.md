@@ -1,4 +1,4 @@
-# deoplete-go
+# deoplete-jedi
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim) source for [jedi](https://github.com/davidhalter/jedi).
 
 
