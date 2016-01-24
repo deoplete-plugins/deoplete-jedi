@@ -19,8 +19,7 @@ class Source(Base):
         self.is_bytepos = True
 
     def get_complete_position(self, context):
-        return self.vim.current.window.cursor[1]
-        # return self.completions(1, 0)
+        return self.completions(1, 0)
 
     def gather_candidates(self, context):
         return self.completions(0, 0)
