@@ -59,8 +59,7 @@ class Source(Base):
             try:
                 script = self.get_script(source=source, column=column)
                 completions = script.completions()
-                signatures = script.call_signatures()
-
+#
                 out = []
                 for c in completions:
                     d = dict(word=c.complete,
@@ -77,6 +76,5 @@ class Source(Base):
                 print(traceback.format_exc())
                 out = ''
                 completions = []
-                signatures = []
 
             return out
