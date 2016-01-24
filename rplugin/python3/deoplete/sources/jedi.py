@@ -12,8 +12,6 @@ class Source(Base):
         self.name = 'jedi'
         self.mark = '[jedi]'
         self.filetypes = ['python']
-        self.rank = 1000
-        self.min_pattern_length = 0
         self.input_pattern = r'[^. \t0-9]\.\w*|^\s*@\w*|^\s*from\s.+import \w*|^\s*from \w*|^\s*import \w*'
         self.is_bytepos = True
 
