@@ -70,6 +70,7 @@ class Source(Base):
                 else:
                     source += line
                 source += '\n'
+            column += base
 
             out = []
             try:
@@ -79,7 +80,7 @@ class Source(Base):
             completions = script.completions()
 
             for c in completions:
-                word = c.complete
+                word = c.name[:base] + c.complete
                 abbr = c.name
                 kind = c.description
                 info = c.docstring()
