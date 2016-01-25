@@ -1,3 +1,4 @@
+import os
 import re
 import jedi
 
@@ -38,6 +39,8 @@ class Source(Base):
         # This is practical for IDEs, that want to administrate their modules themselves.
         jedi.settings.additional_dynamic_modules = \
             [b.name for b in self.vim.buffers if b.name is not None and b.name.endswith('.py')]
+
+        jedi.settings.cache_directory = os.path.join(os.getenv('XDG_CACHE_HOME'), 'jedi')
 
         # Need?
         if source is None:
