@@ -76,17 +76,31 @@ class Source(Base):
 
             out = []
             for c in completions:
+                word = c.complete
+                abbr = c.name
+                kind = c.description
+                info = c.docstring()
+
+                # Format c.docstring(), Add '(' bracket
                 if c.type == 'function' and re.match(c.name, c.docstring()):
                     word = c.complete + '('
                     abbr = re.sub('"(|)",|  ', '',
                                   c.docstring().split("\n\n")[0].replace('\n', ' '))
+                # Remove '.' for type of 'import'
+                # TODO: '.' completion want in code side
+                #       Need to parse 'import' before the current cursor
+                elif c.type == 'module':
+                    word = c.complete.replace('.', '')
+                # Remove '=', Add '.' for name of 'self'
+                elif c.name == 'self':
+                    word = c.complete.replace('=', '') + '.'
                 else:
                     word = c.complete
-                    abbr = c.name
-                d = dict(word=str(word),
-                         abbr=str(abbr),
-                         kind=c.description,
-                         info=c.docstring(),
+
+                d = dict(word=word,
+                         abbr=abbr,
+                         kind=kind,
+                         info=info,
                          icase=1,
                          dup=1
                          )
