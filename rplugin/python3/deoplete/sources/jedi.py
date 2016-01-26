@@ -65,8 +65,12 @@ class Source(Base):
         row, column = self.vim.current.window.cursor
 
         if findstart == 1:
-            # Really good?
-            return column
+            count = 0
+            for char in reversed(self.vim.current.line[:column]):
+                if not re.match('[\w\d]', char):
+                    break
+                count += 1
+            return (column - count)
 
         # jedi-vim style? or simple?
         # source = '\n'.join(self.vim.current.buffer[:])
@@ -86,23 +90,24 @@ class Source(Base):
         completions = script.completions()
 
         for c in completions:
-            word = c.name[:base] + c.complete
+            word = c.name
             abbr = c.name
             kind = c.description
             info = c.docstring()
 
-            # Format c.docstring(), Add '(' bracket
+            # Add '(' bracket
             if c.type == 'function':
-                word = c.complete + '('
+                word = c.name + '('
             # Remove '.' for type of 'import'
             # TODO: '.' completion want in code side
             #       Need to parse 'import' before the current cursor
             elif c.type == 'module':
-                word = c.complete.replace('.', '')
+                word = c.name.replace('.', '')
             # Remove '=', Add '.' for name of 'self'
             elif c.name == 'self':
-                word = c.complete.replace('=', '') + '.'
+                word = c.name.replace('=', '') + '.'
 
+            # Format c.docstring() for 
             if re.match(c.name, c.docstring()):
                 abbr = re.sub('"(|)",|  ', '',
                               c.docstring().split("\n\n")[0].replace('\n', ' ')
