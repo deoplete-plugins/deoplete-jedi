@@ -44,8 +44,10 @@ class Source(Base):
             b.name for b in self.vim.buffers
             if b.name is not None and b.name.endswith('.py')]
 
-        jedi.settings.cache_directory = os.path.join(
-            os.getenv('XDG_CACHE_HOME'), 'jedi')
+        cache_home = os.getenv('XDG_CACHE_HOME')
+        if not cache_home:
+            cache_home = '~/.cache'
+        jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
         # Needed?
         if source is None:
@@ -114,4 +116,3 @@ class Source(Base):
                             ))
 
         return out
->>>>>>> Better format
