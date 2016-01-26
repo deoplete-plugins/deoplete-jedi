@@ -109,7 +109,6 @@ class Source(Base):
 
             # Format c.docstring() for abbr
             if re.match(c.name, c.docstring()):
-            # if not re.match(b'word' + b'() ->', b'c.docstring'):
                 abbr = re.sub('"(|)|  ",', '',
                               c.docstring().split("\n\n")[0]
                               .split("->")[0]
