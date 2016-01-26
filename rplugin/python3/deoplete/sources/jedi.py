@@ -109,8 +109,8 @@ class Source(Base):
 
             out.append(dict(word=str(word),
                             abbr=str(abbr),
-                            kind=c.description,
-                            info=c.docstring(),
+                            kind=kind,
+                            info=info,
                             icase=1,
                             dup=1
                             ))
