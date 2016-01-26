@@ -13,9 +13,9 @@ class Source(Base):
         self.name = 'jedi'
         self.mark = '[jedi]'
         self.filetypes = ['python']
-        self.min_pattern_length = 0
-        self.input_pattern = r'[^. \t0-9]\.\w*|^\s*@\w*|^\s*from\s.+import \w*|^\s*from \w*|^\s*import \w*'
-        self.is_bytepos = True
+        self.input_pattern = (r'[^. \t0-9]\.\w*|^\s*@\w*|' +
+                              r'^\s*from\s.+import \w*|' +
+                              r'^\s*from \w*|^\s*import \w*')
 
     def get_complete_position(self, context):
         return self.completions(1, 0)
