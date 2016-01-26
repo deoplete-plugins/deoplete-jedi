@@ -78,13 +78,13 @@ class Source(Base):
                 source += line
             source += '\n'
 
+        out = []
         try:
             script = self.get_script(source=source, column=column)
         except:
             return out
         completions = script.completions()
 
-        out = []
         for c in completions:
             word = c.name[:base] + c.complete
             abbr = c.name
