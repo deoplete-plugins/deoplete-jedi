@@ -107,10 +107,13 @@ class Source(Base):
             elif c.name == 'self':
                 word = c.name.replace('=', '') + '.'
 
-            # Format c.docstring() for 
+            # Format c.docstring() for abbr
             if re.match(c.name, c.docstring()):
-                abbr = re.sub('"(|)",|  ', '',
-                              c.docstring().split("\n\n")[0].replace('\n', ' ')
+            # if not re.match(b'word' + b'() ->', b'c.docstring'):
+                abbr = re.sub('"(|)|  ",', '',
+                              c.docstring().split("\n\n")[0]
+                              .split("->")[0]
+                              .replace('\n', ' ')
                               )
 
             out.append(dict(word=word,
