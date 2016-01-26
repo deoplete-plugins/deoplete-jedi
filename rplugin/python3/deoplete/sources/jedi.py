@@ -92,7 +92,7 @@ class Source(Base):
         for c in completions:
             word = c.name
             abbr = c.name
-            kind = c.description
+            kind = c.description.replace('  ', '')
             info = c.docstring()
 
             # Add '(' bracket
