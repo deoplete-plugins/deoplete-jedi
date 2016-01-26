@@ -92,10 +92,8 @@ class Source(Base):
             info = c.docstring()
 
             # Format c.docstring(), Add '(' bracket
-            if c.type == 'function' and re.match(c.name, c.docstring()):
+            if c.type == 'function':
                 word = c.complete + '('
-                abbr = re.sub('"(|)",|  ', '',
-                              c.docstring().split("\n\n")[0].replace('\n', ' '))
             # Remove '.' for type of 'import'
             # TODO: '.' completion want in code side
             #       Need to parse 'import' before the current cursor
@@ -104,11 +102,14 @@ class Source(Base):
             # Remove '=', Add '.' for name of 'self'
             elif c.name == 'self':
                 word = c.complete.replace('=', '') + '.'
-            else:
-                word = c.complete
 
-            out.append(dict(word=str(word),
-                            abbr=str(abbr),
+            if re.match(c.name, c.docstring()):
+                abbr = re.sub('"(|)",|  ', '',
+                              c.docstring().split("\n\n")[0].replace('\n', ' ')
+                              )
+
+            out.append(dict(word=word,
+                            abbr=abbr,
                             kind=kind,
                             info=info,
                             icase=1,
