@@ -100,7 +100,7 @@ class Source(Base):
             if c.type == 'function':
                 word = c.name + '('
             # Add '.' for 'self' and 'class'
-            elif word == 'self' or c.type == 'class':
+            elif word == 'self' or c.type == 'class' or c.type == 'module':
                 word = c.name + '.'
 
             # Format c.docstring() for abbr
