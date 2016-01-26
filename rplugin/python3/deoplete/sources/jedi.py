@@ -95,17 +95,13 @@ class Source(Base):
             kind = re.sub('\n|  ', '', c.description)
             info = c.docstring()
 
+            # TODO: configurable and refactoring
             # Add '(' bracket
             if c.type == 'function':
                 word = c.name + '('
-            # Remove '.' for type of 'import'
-            # TODO: '.' completion want in code side
-            #       Need to parse 'import' before the current cursor
-            elif c.type == 'module':
-                word = c.name.replace('.', '')
-            # Remove '=', Add '.' for name of 'self'
-            elif c.name == 'self':
-                word = c.name.replace('=', '') + '.'
+            # Add '.' for 'self' and 'class'
+            elif word == 'self' or c.type == 'class':
+                word = c.name + '.'
 
             # Format c.docstring() for abbr
             if re.match(c.name, c.docstring()):
