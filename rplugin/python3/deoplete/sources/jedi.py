@@ -91,7 +91,7 @@ class Source(Base):
         out = []
         try:
             script = self.get_script(source=source, column=column)
-        except:
+        except Exception:
             return out
         completions = script.completions()
 
@@ -101,7 +101,7 @@ class Source(Base):
             kind = re.sub('\n|  ', '', c.description)
             info = c.docstring()
 
-            # TODO: configurable and refactoring
+            # TODO(zchee): configurable and refactoring
             # Add '(' bracket
             if c.type == 'function':
                 word = c.name + '('
