@@ -68,10 +68,11 @@ class Source(Base):
 
     def completions(self, findstart, base):
         row, column = self.vim.current.window.cursor
+        currnt_line = self.vim.current.line
 
         if findstart == 1:
             count = 0
-            for char in reversed(self.vim.current.line[:column]):
+            for char in reversed(currnt_line[:column]):
                 if not re.match('[\w\d]', char):
                     break
                 count += 1
@@ -105,7 +106,12 @@ class Source(Base):
             if c.type == 'function':
                 word = c.name + '('
             # Add '.' for 'self' and 'class'
-            elif word == 'self' or c.type == 'class' or c.type == 'module':
+            elif word == 'self' or c.type == r'class|module'and not \
+                    re.match(
+                        r'^\s*from\s.+import \w*' +
+                        '^\s*from \w*|^\s*import \w*',
+                        currnt_line
+                    ):
                 word = c.name + '.'
 
             # Format c.docstring() for abbr
