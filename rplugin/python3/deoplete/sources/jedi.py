@@ -106,7 +106,7 @@ class Source(Base):
             if c.type == 'function':
                 word = c.name + '('
             # Add '.' for 'self' and 'class'
-            elif word == 'self' or c.type == r'class|module'and not \
+            elif word == 'self' or c.type == r'class|module' and not \
                     re.match(
                         r'^\s*from\s.+import \w*' +
                         '^\s*from \w*|^\s*import \w*',
