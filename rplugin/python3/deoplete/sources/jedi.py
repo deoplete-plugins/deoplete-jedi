@@ -1,5 +1,10 @@
 import os
 import re
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+jedi_dir = os.path.join(os.path.dirname(current_dir), 'jedi')
+sys.path.insert(0, jedi_dir)
 import jedi
 
 from .base import Base
