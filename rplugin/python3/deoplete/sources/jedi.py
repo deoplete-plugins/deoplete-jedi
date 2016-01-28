@@ -23,12 +23,56 @@ class Source(Base):
                               r'^\s*from \w*|^\s*import \w*')
 
     def get_complete_position(self, context):
-        return self.completions(1, 0)
+        m = re.search(r'\w*$', context['input'])
+        return m.start() if m else -1
 
     def gather_candidates(self, context):
-        return self.completions(0, 0)
+        source = '\n'.join(self.vim.current.buffer)
 
-    def get_script(self, source=None, column=None):
+        try:
+            completions = self.get_script(
+                source, self.vim.current.window.cursor[1]).completions()
+        except Exception:
+            return []
+
+        out = []
+        for c in completions:
+            word = c.name
+
+            # TODO(zchee): configurable and refactoring
+            # Add '(' bracket
+            if c.type == 'function':
+                word += '('
+            # Add '.' for 'self' and 'class'
+            elif (word == 'self' or
+                  c.type == 'class' or
+                  c.type == 'module') and (not re.match(
+                      r'^\s*from\s.+import \w*' +
+                      r'^\s*from \w*|^\s*import \w*',
+                      self.vim.current.line)):
+                word += '.'
+
+            # Format c.docstring() for abbr
+            if re.match(c.name, c.docstring()):
+                abbr = re.sub('"(|)|  ",', '',
+                              c.docstring().split("\n\n")[0]
+                              .split("->")[0]
+                              .replace('\n', ' ')
+                              )
+            else:
+                abbr = c.name
+
+            out.append(dict(word=word,
+                            abbr=abbr,
+                            kind=re.sub('\n|  ', '', c.description),
+                            info=c.docstring(),
+                            icase=1,
+                            dup=1
+                            ))
+
+        return out
+
+    def get_script(self, source, column):
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
         # Adds a dot after a module, because a module that is not accessed this
         # way is definitely not the normal case.  However, in VIM this doesn’t
@@ -50,84 +94,12 @@ class Source(Base):
             if b.name is not None and b.name.endswith('.py')]
 
         cache_home = os.getenv('XDG_CACHE_HOME')
-        if not cache_home:
+        if cache_home is None:
             cache_home = '~/.cache'
         jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
-        # Needed?
-        if source is None:
-            source = '\n'.join(self.vim.current.buffer)
         row = self.vim.current.window.cursor[0]
-        # Needed?
-        if column is None:
-            column = self.vim.current.window.cursor[1]
         buf_path = self.vim.current.buffer.name
         encoding = self.vim.eval('&encoding')
 
         return jedi.Script(source, row, column, buf_path, encoding)
-
-    def completions(self, findstart, base):
-        row, column = self.vim.current.window.cursor
-        currnt_line = self.vim.current.line
-
-        if findstart == 1:
-            count = 0
-            for char in reversed(currnt_line[:column]):
-                if not re.match('[\w\d]', char):
-                    break
-                count += 1
-            return (column - count)
-
-        # jedi-vim style? or simple?
-        # source = '\n'.join(self.vim.current.buffer[:])
-        source = ''
-        for i, line in enumerate(self.vim.current.buffer):
-            if i == row - 1:
-                source += line[:column] + str(base) + line[column:]
-            else:
-                source += line
-            source += '\n'
-
-        out = []
-        try:
-            script = self.get_script(source=source, column=column)
-        except Exception:
-            return out
-        completions = script.completions()
-
-        for c in completions:
-            word = c.name
-            abbr = c.name
-            kind = re.sub('\n|  ', '', c.description)
-            info = c.docstring()
-
-            # TODO(zchee): configurable and refactoring
-            # Add '(' bracket
-            if c.type == 'function':
-                word = c.name + '('
-            # Add '.' for 'self' and 'class'
-            elif word == 'self' or c.type == r'class|module' and not \
-                    re.match(
-                        r'^\s*from\s.+import \w*' +
-                        '^\s*from \w*|^\s*import \w*',
-                        currnt_line
-                    ):
-                word = c.name + '.'
-
-            # Format c.docstring() for abbr
-            if re.match(c.name, c.docstring()):
-                abbr = re.sub('"(|)|  ",', '',
-                              c.docstring().split("\n\n")[0]
-                              .split("->")[0]
-                              .replace('\n', ' ')
-                              )
-
-            out.append(dict(word=word,
-                            abbr=abbr,
-                            kind=kind,
-                            info=info,
-                            icase=1,
-                            dup=1
-                            ))
-
-        return out
