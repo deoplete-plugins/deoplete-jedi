@@ -95,7 +95,7 @@ class Source(Base):
 
         cache_home = os.getenv('XDG_CACHE_HOME')
         if cache_home is None:
-            cache_home = '~/.cache'
+            cache_home = os.path.expanduser('~/.cache')
         jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
         row = self.vim.current.window.cursor[0]
