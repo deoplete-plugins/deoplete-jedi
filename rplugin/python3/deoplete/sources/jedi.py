@@ -18,9 +18,11 @@ class Source(Base):
         self.name = 'jedi'
         self.mark = '[jedi]'
         self.filetypes = ['python']
-        self.input_pattern = (r'[^. \t0-9]\.\w*|^\s*@\w*|' +
-                              r'^\s*from\s.+import \w*|' +
-                              r'^\s*from \w*|^\s*import \w*')
+        self.input_pattern = (r'[^. \t0-9]\.\w*|'
+                              r'^\s*@\w*|'
+                              r'^\s*from\s.+import \w*|'
+                              r'^\s*from \w*|'
+                              r'^\s*import \w*')
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
@@ -35,21 +37,23 @@ class Source(Base):
         except Exception:
             return []
 
+        is_import = re.match(r'^\s*from\s.+import \w*|'
+                             r'^\s*from \w*|'
+                             r'^\s*import \w*',
+                             self.vim.current.line)
+
         out = []
         for c in completions:
             word = c.name
 
             # TODO(zchee): configurable and refactoring
             # Add '(' bracket
-            if c.type == 'function':
+            if not is_import and c.type == 'function':
                 word += '('
             # Add '.' for 'self' and 'class'
-            elif (word == 'self' or
-                  c.type == 'class' or
-                  c.type == 'module') and (not re.match(
-                      r'^\s*from\s.+import \w*' +
-                      r'^\s*from \w*|^\s*import \w*',
-                      self.vim.current.line)):
+            elif not is_import and (word == 'self' or
+                                    c.type == 'class' or
+                                    c.type == 'module'):
                 word += '.'
 
             # Format c.docstring() for abbr
