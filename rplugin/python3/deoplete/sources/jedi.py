@@ -31,7 +31,7 @@ class Source(Base):
 
         try:
             completions = self.get_script(
-                source, self.vim.current.window.cursor[1]).completions()
+                source, context['complete_position']).completions()
         except Exception:
             return []
 
