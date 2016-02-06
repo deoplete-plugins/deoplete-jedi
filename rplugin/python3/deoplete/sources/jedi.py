@@ -71,7 +71,6 @@ class Source(Base):
                             abbr=abbr,
                             kind=re.sub('\n|  ', '', c.description),
                             info=c.docstring(),
-                            icase=1,
                             dup=1
                             ))
 
