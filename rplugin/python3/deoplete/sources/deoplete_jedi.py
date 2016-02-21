@@ -30,11 +30,12 @@ class Source(Base):
         return m.start() if m else -1
 
     def gather_candidates(self, context):
-        source = '\n'.join(self.vim.current.buffer)
+        buf = self.vim.current.buffer
+        source = '\n'.join(buf)
 
         try:
             completions = self.get_script(
-                source, context['complete_position']).completions()
+                source, context['complete_position'], buf).completions()
         except Exception:
             return []
 
@@ -76,7 +77,7 @@ class Source(Base):
 
         return out
 
-    def get_script(self, source, column):
+    def get_script(self, source, column, buf):
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
         # Adds a dot after a module, because a module that is not accessed this
         # way is definitely not the normal case.  However, in VIM this doesn’t
@@ -103,6 +104,5 @@ class Source(Base):
         jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
         row = self.vim.current.window.cursor[0]
-        buf_path = self.vim.current.buffer.name
 
-        return jedi.Script(source, row, column, buf_path)
+        return jedi.Script(source, row, column, buf.name)
