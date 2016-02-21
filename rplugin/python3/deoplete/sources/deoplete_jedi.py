@@ -103,6 +103,6 @@ class Source(Base):
             cache_home = os.path.expanduser('~/.cache')
         jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
-        row = self.vim.current.window.cursor[0]
+        line = self.vim.eval("line('.')")
 
-        return jedi.Script(source, row, column, buf.name)
+        return jedi.Script(source, line, column, buf.name)
