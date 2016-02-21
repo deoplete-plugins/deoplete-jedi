@@ -104,6 +104,5 @@ class Source(Base):
 
         row = self.vim.current.window.cursor[0]
         buf_path = self.vim.current.buffer.name
-        encoding = self.vim.eval('&encoding')
 
-        return jedi.Script(source, row, column, buf_path, encoding)
+        return jedi.Script(source, row, column, buf_path)
