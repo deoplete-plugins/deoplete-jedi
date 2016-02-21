@@ -8,7 +8,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 from helper import get_var
 from helper import load_external_module
-from helper import set_debug
 
 load_external_module('jedi')
 import jedi
@@ -36,6 +35,7 @@ class Source(Base):
                               r'^\s*import \w*')
 
         if get_var(self.vim, 'deoplete#enable_debug'):
+            from helper import set_debug
             log_file = get_var(
                 self.vim, 'deoplete#sources#jedi#debug#log_file')
             set_debug(logger, os.path.expanduser(log_file))
@@ -44,13 +44,7 @@ class Source(Base):
         m = re.search(r'\w*$', context['input'])
         return m.start() if m else -1
 
-    def is_import(self, line):
-        return re.match(r'^\s*from\s.+import \w*|'
-                 r'^\s*from \w*|'
-                 r'^\s*import \w*',
-                 line)
-
-    @timeit(logger, 'simple', [0.10000000, 0.20000000])
+    # @timeit(logger, 'simple', [0.10000000, 0.20000000])
     def gather_candidates(self, context):
         line = self.vim.eval("line('.')")
         col = context['complete_position']
@@ -99,6 +93,12 @@ class Source(Base):
                             ))
 
         return out
+
+    def is_import(self, line):
+        return re.match(r'^\s*from\s.+import \w*|'
+                 r'^\s*from \w*|'
+                 r'^\s*import \w*',
+                 line)
 
     def get_script(self, source, line, col, buf_path):
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
