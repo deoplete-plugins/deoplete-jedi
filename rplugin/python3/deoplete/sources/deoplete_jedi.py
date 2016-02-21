@@ -16,6 +16,9 @@ import jedi
 from logging import getLogger
 logger = getLogger(__name__)
 
+# Profiler
+from profiler import timeit
+
 
 class Source(Base):
 
@@ -37,61 +40,6 @@ class Source(Base):
                 self.vim, 'deoplete#sources#jedi#debug#log_file')
             set_debug(logger, os.path.expanduser(log_file))
 
-    def get_complete_position(self, context):
-        m = re.search(r'\w*$', context['input'])
-        return m.start() if m else -1
-
-    def gather_candidates(self, context):
-        buf = self.vim.current.buffer
-        source = '\n'.join(buf)
-
-        try:
-            completions = self.get_script(
-                source, context['complete_position'], buf).completions()
-        except Exception:
-            return []
-
-        is_import = re.match(r'^\s*from\s.+import \w*|'
-                             r'^\s*from \w*|'
-                             r'^\s*import \w*',
-                             self.vim.current.line)
-
-        out = []
-        for c in completions:
-            word = c.name
-
-            # TODO(zchee): configurable and refactoring
-            # Add '(' bracket
-            if not is_import and c.type == 'function':
-                word += '('
-            # Add '.' for 'self' and 'class'
-            elif not is_import and \
-                not re.search(r'Error|Exception', word) and \
-                (word == 'self' or
-                 c.type == 'module' or
-                 c.type == 'class'):
-                word += '.'
-
-            # Format c.docstring() for abbr
-            if re.match(c.name, c.docstring()):
-                abbr = re.sub('"(|)|  ",', '',
-                              c.docstring().split("\n\n")[0]
-                              .split("->")[0]
-                              .replace('\n', ' ')
-                              )
-            else:
-                abbr = c.name
-
-            out.append(dict(word=word,
-                            abbr=abbr,
-                            kind=re.sub('\n|  ', '', c.description),
-                            info=c.docstring(),
-                            dup=1
-                            ))
-
-        return out
-
-    def get_script(self, source, column, buf):
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
         # Adds a dot after a module, because a module that is not accessed this
         # way is definitely not the normal case.  However, in VIM this doesn’t
@@ -117,6 +65,62 @@ class Source(Base):
             cache_home = os.path.expanduser('~/.cache')
         jedi.settings.cache_directory = os.path.join(cache_home, 'jedi')
 
-        line = self.vim.eval("line('.')")
+    def get_complete_position(self, context):
+        m = re.search(r'\w*$', context['input'])
+        return m.start() if m else -1
 
-        return jedi.Script(source, line, column, buf.name)
+    def is_import(self, line):
+        return re.match(r'^\s*from\s.+import \w*|'
+                 r'^\s*from \w*|'
+                 r'^\s*import \w*',
+                 line)
+
+    @timeit(logger, 'simple', [0.10000000, 0.20000000])
+    def gather_candidates(self, context):
+        line = self.vim.eval("line('.')")
+        col = context['complete_position']
+        buf = self.vim.current.buffer
+        source = '\n'.join(buf[:])
+        cline = self.vim.current.line
+
+        try:
+            completions = \
+                jedi.Script(
+                    source, line, col, buf.name).completions()
+        except Exception:
+            return []
+
+        out = []
+        for c in completions:
+            word = c.name
+
+            # TODO(zchee): configurable and refactoring
+            # Add '(' bracket
+            if not self.is_import(cline) and c.type == 'function':
+                word += '('
+            # Add '.' for 'self' and 'class'
+            elif not self.is_import(cline) and \
+                not re.search(r'Error|Exception', word) and \
+                (word == 'self' or
+                 c.type == 'module' or
+                 c.type == 'class'):
+                word += '.'
+
+            # Format c.docstring() for abbr
+            if re.match(c.name, c.docstring()):
+                abbr = re.sub('"(|)|  ",', '',
+                              c.docstring().split("\n\n")[0]
+                              .split("->")[0]
+                              .replace('\n', ' ')
+                              )
+            else:
+                abbr = c.name
+
+            out.append(dict(word=word,
+                            abbr=abbr,
+                            kind=re.sub('\n|  ', '', c.description),
+                            info=c.docstring(),
+                            dup=1
+                            ))
+
+        return out
