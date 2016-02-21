@@ -65,9 +65,11 @@ class Source(Base):
             if not is_import and c.type == 'function':
                 word += '('
             # Add '.' for 'self' and 'class'
-            elif not is_import and (word == 'self' or
-                                    c.type == 'class' or
-                                    c.type == 'module'):
+            elif not is_import and \
+                not re.search(r'Error|Exception', word) and \
+                (word == 'self' or
+                 c.type == 'module' or
+                 c.type == 'class'):
                 word += '.'
 
             # Format c.docstring() for abbr
