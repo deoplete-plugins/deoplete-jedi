@@ -1,22 +1,18 @@
 import os
 import re
-import sys
 
 from deoplete.sources.base import Base
+from deoplete.util import load_external_module
+from logging import getLogger
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
-from helper import get_var
-from helper import load_external_module
-
-load_external_module('jedi')
+current = __file__
+load_external_module(current, 'jedi')
 import jedi
 
-from logging import getLogger
-logger = getLogger(__name__)
-
-# Profiler
+load_external_module(current, 'sources/deoplete_jedi')
 from profiler import timeit
+
+logger = getLogger(__name__)
 
 
 class Source(Base):
@@ -34,11 +30,14 @@ class Source(Base):
                               r'^\s*from \w*|'
                               r'^\s*import \w*')
 
-        if get_var(self.vim, 'deoplete#enable_debug'):
-            from helper import set_debug
-            log_file = get_var(
-                self.vim, 'deoplete#sources#jedi#debug#log_file')
-            set_debug(logger, os.path.expanduser(log_file))
+        try:
+            if self.vim.vars['deoplete#enable_debug']:
+                from helper import set_debug
+                log_file = \
+                    self.vim.vars['deoplete#sources#jedi#debug#log_file']
+                set_debug(logger, os.path.expanduser(log_file))
+        except Exception:
+            pass
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
