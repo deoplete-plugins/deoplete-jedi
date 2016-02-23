@@ -61,19 +61,9 @@ class Source(Base):
         out = []
         for c in completions:
             word = c.name
+            _type = c.type
 
             # TODO(zchee): configurable and refactoring
-            # Add '(' bracket
-            if not self.is_import(cline) and c.type == 'function':
-                word += '('
-            # Add '.' for 'self' and 'class'
-            elif not self.is_import(cline) and \
-                not re.search(r'Error|Exception', word) and \
-                (word == 'self' or
-                 c.type == 'module' or
-                 c.type == 'class'):
-                word += '.'
-
             # Format c.docstring() for abbr
             if re.match(c.name, c.docstring()):
                 abbr = re.sub('"(|)|  ",', '',
@@ -82,7 +72,16 @@ class Source(Base):
                               .replace('\n', ' ')
                               )
             else:
-                abbr = c.name
+                abbr = word
+
+            # Add '(' bracket
+            if not self.is_import(cline) and _type == 'function':
+                word += '('
+            # Add '.' for 'self' and 'class'
+            elif not self.is_import(cline) and word == 'self' or \
+                    word not in ['Error', 'Exception'] and \
+                    _type in ['module', 'class']:
+                word += '.'
 
             out.append(dict(word=word,
                             abbr=abbr,
