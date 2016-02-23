@@ -95,9 +95,9 @@ class Source(Base):
 
     def is_import(self, line):
         return re.match(r'^\s*from\s.+import \w*|'
-                 r'^\s*from \w*|'
-                 r'^\s*import \w*',
-                 line)
+                        r'^\s*from \w*|'
+                        r'^\s*import \w*',
+                        line)
 
     def get_script(self, source, line, col, buf_path):
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
