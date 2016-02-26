@@ -31,24 +31,10 @@ class Source(Base):
                               r'^\s*import \w*')
 
         # jedi core library settings
+        # http://jedi.jedidjah.ch/en/latest/docs/settings.html
         jedi_settings = jedi.settings
-
-        # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_dot_after_module
-        # Adds a dot after a module, because a module that is not accessed this
-        # way is definitely not the normal case.  However, in VIM this doesn’t
-        # work, that’s why it isn’t used at the moment.
         jedi_settings.add_dot_after_module = True
-
-        # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.add_bracket_after_function
-        # Adds an opening bracket after a function, because that's normal
-        # behaviour.  Removed it again, because in VIM that is not very
-        # practical.
         jedi_settings.add_bracket_after_function = True
-
-        # http://jedi.jedidjah.ch/en/latest/docs/settings.html#jedi.settings.additional_dynamic_modules
-        # Additional modules in which Jedi checks if statements are to be
-        # found.  This is practical for IDEs, that want to administrate their
-        # modules themselves.
         jedi_settings.additional_dynamic_modules = [
             b.name for b in self.vim.buffers
             if b.name is not None and b.name.endswith('.py')]
