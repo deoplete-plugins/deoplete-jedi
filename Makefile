@@ -18,10 +18,10 @@ test_modules:
 	pip3 install -U -r ./test/requirements.txt
 
 flake8:
-	@flake8 -v --config=$(PWD)/.flake8 ${DEOPLETE_JEDI} ${HELPER} ${PROFILER} || true
+	flake8 -v --config=$(PWD)/.flake8 ${DEOPLETE_JEDI} ${HELPER} ${PROFILER} || true
 
 autopep8: clean
-	@autopep8 -i ${DEOPLETE_JEDI}
+	autopep8 -i ${DEOPLETE_JEDI}
 
 clean:
 	@echo "Cleanup debug code in ${CYELLOW}${DEOPLETE_JEDI}${CRESET}..."
