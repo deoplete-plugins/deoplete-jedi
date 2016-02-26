@@ -3,16 +3,11 @@ import re
 
 from deoplete.sources.base import Base
 from deoplete.util import load_external_module
-from logging import getLogger
 
 current = __file__
 load_external_module(current, 'jedi')
-import jedi
-
 load_external_module(current, 'sources/deoplete_jedi')
-from profiler import timeit
-
-logger = getLogger(__name__)
+import jedi
 
 
 class Source(Base):
@@ -44,20 +39,10 @@ class Source(Base):
             cache_home = os.path.expanduser('~/.cache')
         jedi_settings.cache_directory = os.path.join(cache_home, 'jedi')
 
-        try:
-            if self.vim.vars['deoplete#enable_debug']:
-                from helper import set_debug
-                log_file = \
-                    self.vim.vars['deoplete#sources#jedi#debug#log_file']
-                set_debug(logger, os.path.expanduser(log_file))
-        except Exception:
-            pass
-
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
         return m.start() if m else -1
 
-    # @timeit(logger, 'simple', [0.10000000, 0.20000000])
     def gather_candidates(self, context):
         line = context['position'][1]
         col = context['complete_position']
