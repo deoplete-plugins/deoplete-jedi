@@ -50,9 +50,10 @@ class Source(Base):
         source = '\n'.join(buf[:])
         cline = self.vim.current.line
 
-        completions = \
-            jedi.Script(source, line, col, buf.name).completions()
-        if completions is None:
+        try:
+            completions = \
+                jedi.Script(source, line, col, buf.name).completions()
+        except Exception:
             return []
 
         out = []
