@@ -65,16 +65,15 @@ class Source(Base):
         source = '\n'.join(buf[:])
         cline = self.vim.current.line
 
-        try:
-            completions = \
-                jedi.Script(source, line, col, buf.name).completions()
-        except Exception:
+        completions = \
+            jedi.Script(source, line, col, buf.name).completions()
+        if completions is None:
             return []
 
         out = []
         for c in completions:
-            word = c.name
             _type = c.type
+            word = c.name
 
             # TODO(zchee): configurable and refactoring
             # Format c.docstring() for abbr
