@@ -97,7 +97,7 @@ class Source(Base):
 
             out.append(dict(word=word,
                             abbr=abbr,
-                            kind=re.sub('\n|  ', '', c.description),
+                            kind=self.format_description(c.description),
                             info=c.docstring(),
                             dup=1
                             ))
@@ -109,3 +109,10 @@ class Source(Base):
                         r'^\s*from \w*|'
                         r'^\s*import \w*',
                         line)
+
+    def format_description(self, raw_desc):
+        description = re.sub('\n|  ', '', raw_desc)
+        if re.search(' #', description):
+            description = 'statement'
+
+        return description
