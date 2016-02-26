@@ -59,7 +59,7 @@ class Source(Base):
 
     # @timeit(logger, 'simple', [0.10000000, 0.20000000])
     def gather_candidates(self, context):
-        line = self.vim.eval("line('.')")
+        line = context['position'][1]
         col = context['complete_position']
         buf = self.vim.current.buffer
         source = '\n'.join(buf[:])
