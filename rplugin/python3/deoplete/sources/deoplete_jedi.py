@@ -25,6 +25,9 @@ class Source(Base):
                               r'^\s*from \w*|'
                               r'^\s*import \w*')
 
+        self.description_length = \
+            self.vim.vars['deoplete#sources#jedi#statement_length']
+
         # jedi core library settings
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html
         jedi_settings = jedi.settings
@@ -98,7 +101,8 @@ class Source(Base):
 
     def format_description(self, raw_desc):
         description = re.sub('\n|  ', '', raw_desc)
-        if re.search(' #', description):
+        if re.search(' #', description) or \
+                len(raw_desc) > self.description_length:
             description = 'statement'
 
         return description
