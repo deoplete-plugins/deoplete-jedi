@@ -31,8 +31,6 @@ class Source(Base):
         # jedi core library settings
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html
         jedi_settings = jedi.settings
-        jedi_settings.add_dot_after_module = True
-        jedi_settings.add_bracket_after_function = True
         jedi_settings.additional_dynamic_modules = [
             b.name for b in self.vim.buffers
             if b.name is not None and b.name.endswith('.py')]
