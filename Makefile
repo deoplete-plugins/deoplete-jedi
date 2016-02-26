@@ -14,10 +14,12 @@ PROFILER := ${RPLUGIN_PATH}/deoplete_clang/profiler.py
 
 all: autopep8
 
+test: flake8
+
 lint: lint_modules flake8
 
 lint_modules:
-	pip3 install -U -r ./test/requirements.txt
+	pip3 install -U -r ./tests/requirements.txt
 
 flake8:
 	flake8 -v --config=$(PWD)/.flake8 ${DEOPLETE_JEDI} ${HELPER} ${PROFILER} || true
