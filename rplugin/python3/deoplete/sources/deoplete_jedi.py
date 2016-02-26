@@ -31,14 +31,17 @@ class Source(Base):
         # jedi core library settings
         # http://jedi.jedidjah.ch/en/latest/docs/settings.html
         jedi_settings = jedi.settings
-        jedi_settings.additional_dynamic_modules = [
-            b.name for b in self.vim.buffers
-            if b.name is not None and b.name.endswith('.py')]
-
+        # Completion output
+        jedi_settings.case_insensitive_completion = False
+        # Filesystem cache
         cache_home = os.getenv('XDG_CACHE_HOME')
         if cache_home is None:
             cache_home = os.path.expanduser('~/.cache')
         jedi_settings.cache_directory = os.path.join(cache_home, 'jedi')
+        # Dynamic stuff
+        jedi_settings.additional_dynamic_modules = [
+            b.name for b in self.vim.buffers
+            if b.name is not None and b.name.endswith('.py')]
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
