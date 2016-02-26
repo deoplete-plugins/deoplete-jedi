@@ -1,6 +1,10 @@
 # deoplete-jedi
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim) source for [jedi](https://github.com/davidhalter/jedi).
 
+|| **Status** |
+|---|---|
+|**Ubuntu 14.04** |[![Build Status](https://travis-ci.org/zchee/deoplete-jedi.svg?branch=master)](https://travis-ci.org/zchee/deoplete-jedi)|
+
 
 ## Required
 
