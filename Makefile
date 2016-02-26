@@ -9,8 +9,8 @@ RPLUGIN_PATH := ./rplugin/python3/deoplete/sources/
 MODULE_NAME := deoplete_jedi.py
 
 DEOPLETE_JEDI := ${RPLUGIN_PATH}${MODULE_NAME}
-HELPER := ${RPLUGIN_PATH}/deoplete_clang/helper.py
-PROFILER := ${RPLUGIN_PATH}/deoplete_clang/profiler.py
+HELPER := ${RPLUGIN_PATH}/deoplete_jedi/helper.py
+PROFILER := ${RPLUGIN_PATH}/deoplete_jedi/profiler.py
 
 all: autopep8
 
