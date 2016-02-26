@@ -14,9 +14,9 @@ PROFILER := ${RPLUGIN_PATH}/deoplete_clang/profiler.py
 
 all: autopep8
 
-test: test_modules flake8
+lint: lint_modules flake8
 
-test_modules:
+lint_modules:
 	pip3 install -U -r ./test/requirements.txt
 
 flake8:
