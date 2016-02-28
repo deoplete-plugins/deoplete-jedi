@@ -77,12 +77,13 @@ class Source(Base):
                 abbr = word
 
             # Add '(' bracket
-            if not self.is_import(cline) and _type == 'function':
+            if _type == 'function':
                 word += '('
             # Add '.' for 'self' and 'class'
-            elif not self.is_import(cline) and word == 'self' or \
-                    word not in ['Error', 'Exception'] and \
-                    _type in ['module', 'class']:
+            elif not self.is_import(cline) and \
+                    _type in ['module', 'class'] or \
+                    not re.search(r'Error|Exception', word) and \
+                    word == 'self':
                 word += '.'
 
             out.append(dict(word=word,
