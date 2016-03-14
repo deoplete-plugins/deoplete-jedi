@@ -29,3 +29,12 @@ NeoBundle 'zchee/deoplete-jedi'
 # or
 Plug 'zchee/deoplete-jedi'
 ```
+
+
+## Options
+
+- `g:deoplete#sources#jedi#statement_length`: Sets the maximum length of
+  completion description text.  If this is exceeded, a simple description is
+  used instead.  Default: `50`
+- `deoplete#sources#jedi#enable_cache`: Enables caching of completions for
+  faster results.  Default: `1`
