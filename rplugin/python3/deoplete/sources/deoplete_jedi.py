@@ -79,6 +79,16 @@ class Source(Base):
 
         return [start, line - 1]
 
+    def split_module(self, text, default_value=None):
+        """Utility to split the module text.
+
+        If there is nothing to split, return `default_value`.
+        """
+        m = re.search('([\w_\.]+)$', text)
+        if m and '.' in m.group(1):
+            return m.group(1).rsplit('.', 1)[0]
+        return default_value
+
     def gather_candidates(self, context):
         line = context['position'][1]
         col = context['complete_position']
@@ -90,6 +100,14 @@ class Source(Base):
         cache_key = None
         deoplete_input = context['input'].strip()
         cache_line = 0
+
+        # Inclusion filters for the results
+        filters = []
+
+        if re.match('^\s*(from|import)\s+', context['input']) \
+                and not re.match('^\s*from\s+\S+\s+', context['input']):
+            # If starting an import, only show module results
+            filters.append('module')
 
         if self.cache_enabled:
             # Caching based on context input.  If the input is blank, it was
@@ -105,17 +123,36 @@ class Source(Base):
             # scope lines are cached to help invalidate the cache based on line
             # position.
 
-            if context.get('complete_str'):
-                # Note: Module completions will be an empty string.
-                word = context.get('complete_str')
-                cache_key = buf.name
-                extra_modules.append(buf.name)
-                cache_line = line - 1
-            else:
-                dot = deoplete_input.rfind('.')
-                if dot != -1:
-                    # Only cache module results.
-                    cache_key = deoplete_input[:dot]
+            if deoplete_input.startswith(('import ', 'from ')):
+                # Cache imports with buffer filename as the key prefix.
+                # For `from` imports, the first part of the statement is
+                # considered to be the same as `import` for caching.
+                suffix = 'import'
+
+                # The trailing whitespace is significant for caching imports.
+                import_line = context['input'].lstrip()
+
+                if import_line.startswith('import'):
+                    m = re.search(r'^import\s+(\S+)$', import_line)
+                else:
+                    m = re.search(r'^from\s+(\S+)\s+import\s+', import_line)
+                    if m:
+                        # Treat the first part of the import as a cached
+                        # module, but cache it per-buffer.
+                        cache_key = '{}.from.{}'.format(buf.name, m.group(1))
+                    else:
+                        m = re.search(r'^from\s+(\S+)$', import_line)
+
+                if not cache_key:
+                    if m:
+                        suffix = self.split_module(m.group(1), suffix)
+                        cache_key = '{}.import.{}'.format(buf.name, suffix)
+                        extra_modules.append(buf.name)
+
+            if not cache_key:
+                # Find a cacheable key first
+                cache_key = self.split_module(deoplete_input)
+                if cache_key:
                     if cache_key.startswith('self'):
                         # TODO: Get class lines and cache these differently
                         # based on cursor position.
@@ -124,9 +161,13 @@ class Source(Base):
                         extra_modules.append(buf.name)
                         cache_key = '{}.{}'.format(buf.name, cache_key)
                         cache_line = line - 1
-                else:
+                        os.path
+                elif context.get('complete_str'):
+                    # Note: Module completions will be an empty string.
+                    word = context.get('complete_str')
+                    cache_key = buf.name
                     extra_modules.append(buf.name)
-                    cache_key = '{}.{}'.format(buf.name, deoplete_input)
+                    cache_line = line - 1
 
             if cache_key and cache_key in self.cache:
                 # XXX: Hash cache keys to reduce length?
@@ -140,7 +181,10 @@ class Source(Base):
                                  extra_modules]) \
                         and all([int(os.path.getmtime(filename)) == mtime
                                  for filename, mtime in modules.items()]):
-                    return cached.get('completions', [])
+                    out = cached.get('completions', [])
+                    if filters:
+                        return [x for x in out if x['$type'] in filters]
+                    return out
 
         try:
             completions = \
@@ -155,13 +199,16 @@ class Source(Base):
                 modules[c.module_path] = int(os.path.getmtime(c.module_path))
 
             _type = c.type
+            docstring = c.docstring()
+
             word = c.name
 
             # TODO(zchee): configurable and refactoring
+            # TODO(tweekmonster): Results for property types are incorrect.
             # Format c.docstring() for abbr
-            if re.match(c.name, c.docstring()):
+            if re.match(c.name, docstring):
                 abbr = re.sub('"(|)|  ",', '',
-                              c.docstring().split("\n\n")[0]
+                              docstring.split("\n\n")[0]
                               .split("->")[0]
                               .replace('\n', ' ')
                               )
@@ -178,12 +225,14 @@ class Source(Base):
                     word == 'self':
                 word += '.'
 
-            out.append(dict(word=word,
-                            abbr=abbr,
-                            kind=self.format_description(c.description),
-                            info=c.docstring(),
-                            dup=1
-                            ))
+            out.append({
+                '$type': _type,
+                'word': word,
+                'abbr': abbr,
+                'kind': self.format_description(c.description),
+                'info': docstring,
+                'dup': 1,
+            })
 
         if cache_key:
             lines = [0, 0]
@@ -196,6 +245,8 @@ class Source(Base):
                 'completions': out,
             }
 
+        if filters:
+            return [x for x in out if x['$type'] in filters]
         return out
 
     def is_import(self, line):
