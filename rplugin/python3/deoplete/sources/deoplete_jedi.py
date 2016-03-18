@@ -220,6 +220,7 @@ class Source(Base):
                 'abbr': abbr,
                 'kind': self.format_description(c.description),
                 'info': docstring,
+                'menu': self.mark + ' ',
                 'dup': 1,
             })
 
