@@ -93,7 +93,7 @@ class Source(Base):
         line = context['position'][1]
         col = context['complete_position']
         buf = self.vim.current.buffer
-        source = buf[:]
+        src = buf[:]
 
         extra_modules = []
         cache_key = None
@@ -187,7 +187,7 @@ class Source(Base):
 
         try:
             completions = \
-                jedi.Script('\n'.join(source), line, col, buf.name).completions()
+                jedi.Script('\n'.join(src), line, col, buf.name).completions()
         except Exception:
             return []
 
@@ -227,7 +227,7 @@ class Source(Base):
         if cache_key:
             lines = [0, 0]
             if cache_line:
-                lines = self.indent_bounds(line, source)
+                lines = self.indent_bounds(line, src)
 
             self.cache[cache_key] = {
                 'lines': lines,
