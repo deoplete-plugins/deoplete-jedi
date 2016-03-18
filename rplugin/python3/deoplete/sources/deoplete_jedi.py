@@ -241,8 +241,7 @@ class Source(Base):
 
     def format_description(self, raw_desc):
         description = re.sub('\n|  ', '', raw_desc)
-        if re.search(' #', description) or \
-                len(raw_desc) > self.description_length:
-            description = 'statement'
+        if len(description) > self.description_length:
+            description = description[:self.description_length]
 
         return description
