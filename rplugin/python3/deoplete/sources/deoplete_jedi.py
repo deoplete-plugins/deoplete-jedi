@@ -215,16 +215,6 @@ class Source(Base):
             else:
                 abbr = word
 
-            # Add '(' bracket
-            if _type == 'function':
-                word += '('
-            # Add '.' for 'self' and 'class'
-            elif not self.is_import(cline) and \
-                    _type in ['module', 'class'] or \
-                    not re.search(r'Error|Exception', word) and \
-                    word == 'self':
-                word += '.'
-
             out.append({
                 '$type': _type,
                 'word': word,
