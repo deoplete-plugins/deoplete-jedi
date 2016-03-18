@@ -239,12 +239,6 @@ class Source(Base):
             return [x for x in out if x['$type'] in filters]
         return out
 
-    def is_import(self, line):
-        return re.match(r'^\s*from\s.+import \w*|'
-                        r'^\s*from \w*|'
-                        r'^\s*import \w*',
-                        line)
-
     def format_description(self, raw_desc):
         description = re.sub('\n|  ', '', raw_desc)
         if re.search(' #', description) or \
