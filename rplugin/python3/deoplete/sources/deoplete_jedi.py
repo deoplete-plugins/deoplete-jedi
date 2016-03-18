@@ -6,7 +6,6 @@ from deoplete.util import load_external_module
 
 current = __file__
 load_external_module(current, 'jedi')
-load_external_module(current, 'sources/deoplete_jedi')
 import jedi
 
 
