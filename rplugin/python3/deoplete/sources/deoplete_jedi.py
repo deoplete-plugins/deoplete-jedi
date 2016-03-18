@@ -94,7 +94,6 @@ class Source(Base):
         col = context['complete_position']
         buf = self.vim.current.buffer
         source = buf[:]
-        cline = self.vim.current.line
 
         extra_modules = []
         cache_key = None
