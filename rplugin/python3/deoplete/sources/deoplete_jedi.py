@@ -8,8 +8,39 @@ current = __file__
 load_external_module(current, 'jedi')
 import jedi
 
-
 _block_re = re.compile(r'^\s*(def|class)\s')
+
+# Type mapping.  Empty values will use the key value instead.
+# Keep them 5 characters max to minimize required space to display.
+_types = {
+    'import': 'imprt',
+    'class': '',
+    'function': 'def',
+    'globalstmt': 'var',
+    'instance': 'var',
+    'statement': 'var',
+    'keyword': 'keywd',
+    'module': 'mod',
+    'param': 'arg',
+    'property': 'prop',
+
+    'bool': '',
+    'bytes': 'byte',
+    'complex': 'cmplx',
+    'dict': '',
+    'list': '',
+    'float': '',
+    'int': '',
+    'object': 'obj',
+    'set': '',
+    'slice': '',
+    'str': '',
+    'tuple': '',
+    'mappingproxy': 'dict',  # cls.__dict__
+    'member_descriptor': 'cattr',
+    'getset_descriptor': 'cprop',
+    'method_descriptor': 'cdef',
+}
 
 
 class Source(Base):
@@ -28,8 +59,14 @@ class Source(Base):
                               r'^\s*from \w*|'
                               r'^\s*import \w*')
 
+        self.debug_enabled = \
+            self.vim.vars['deoplete#sources#jedi#debug_enabled']
+
         self.description_length = \
             self.vim.vars['deoplete#sources#jedi#statement_length']
+
+        self.use_short_types = \
+            self.vim.vars['deoplete#sources#jedi#short_types']
 
         self.cache_enabled = \
             self.vim.vars['deoplete#sources#jedi#enable_cache']
@@ -87,6 +124,87 @@ class Source(Base):
         if m and '.' in m.group(1):
             return m.group(1).rsplit('.', 1)[0]
         return default_value
+
+    def call_signature(self, comp):
+        """Construct the function's call signature.
+
+        comp.docstring() is not reliable and we don't need the entire
+        docstring.
+
+        Returns a tuple of (full, abbr) call signatures.
+        """
+        params = []
+        params_abbr = []
+        try:
+            # Total length includes parenthesis
+            length = len(comp.name)
+            for i, p in enumerate(comp.params):
+                desc = p.description.strip()
+                if i == 0 and desc == 'self':
+                    continue
+                length += len(desc) + 2
+                params.append(desc)
+
+            params_abbr = params[:]
+            if self.description_length > 0:
+                if length > self.description_length:
+                    # First remove all keyword params to see if that makes it
+                    # short enough.
+                    params_abbr = [x.split('=', 1)[0] for x in params_abbr]
+                    length = len(comp.name) + sum([len(x) + 2
+                                                   for x in params_abbr])
+
+                while length + 3 > self.description_length \
+                        and len(params_abbr):
+                    # Keep removing params until short enough.
+                    length -= len(params_abbr[-1]) - 3
+                    params_abbr = params_abbr[:-1]
+                if len(params) > len(params_abbr):
+                    params_abbr.append('...')
+        except AttributeError:
+            pass
+
+        return ('{}({})'.format(comp.name, ', '.join(params)),
+                '{}({})'.format(comp.name, ', '.join(params_abbr)))
+
+    def parse_completion(self, comp, cache):
+        """Return a tuple describing the completion.
+
+        Returns (name, type, description, abbreviated)
+        """
+
+        name = comp.name
+        type_, desc = [x.strip() for x in comp.description.split(':', 1)]
+
+        if type_ == 'instance' and desc.startswith(('builtins.', 'posix.')):
+            # Simple description
+            builtin_type = desc.rsplit('.', 1)[-1]
+            if builtin_type in _types:
+                return (name, builtin_type, '', '')
+
+        if type_ == 'class' and desc.startswith('builtins.'):
+            return (name, type_) + self.call_signature(comp)
+
+        if type_ == 'function':
+            if comp.module_path not in cache and comp.line and comp.line > 1:
+                with open(comp.module_path, 'r') as fp:
+                    cache[comp.module_path] = fp.readlines()
+            lines = cache.get(comp.module_path)
+            if lines:
+                # Check the function's decorators to check if it's decorated
+                # with @property
+                i = comp.line - 2
+                while i >= 0:
+                    line = lines[i].lstrip()
+                    if not line.startswith('@'):
+                        break
+                    if line.startswith('@property'):
+                        return (name, 'property', desc, '')
+                    i -= 1
+            return (name, type_) + self.call_signature(comp)
+
+        # self.debug('Unhandled: %s, Type: %s, Desc: %s', comp.name, type_, desc)
+        return (name, type_, '', '')
 
     def gather_candidates(self, context):
         line = context['position'][1]
@@ -162,7 +280,6 @@ class Source(Base):
                         os.path
                 elif context.get('complete_str'):
                     # Note: Module completions will be an empty string.
-                    word = context.get('complete_str')
                     cache_key = buf.name
                     extra_modules.append(buf.name)
                     cache_line = line - 1
@@ -191,34 +308,22 @@ class Source(Base):
             return []
 
         out = []
+        tmp_filecache = {}
         modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
         for c in completions:
             if c.module_path and c.module_path not in modules:
                 modules[c.module_path] = int(os.path.getmtime(c.module_path))
 
-            _type = c.type
-            docstring = c.docstring()
-
-            word = c.name
-
-            # TODO(zchee): configurable and refactoring
-            # TODO(tweekmonster): Results for property types are incorrect.
-            # Format c.docstring() for abbr
-            if re.match(c.name, docstring):
-                abbr = re.sub('"(|)|  ",', '',
-                              docstring.split("\n\n")[0]
-                              .split("->")[0]
-                              .replace('\n', ' ')
-                              )
-            else:
-                abbr = word
+            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
+            kind = type_ if not self.use_short_types \
+                else _types.get(type_) or type_
 
             out.append({
-                '$type': _type,
-                'word': word,
+                '$type': type_,
+                'word': name,
                 'abbr': abbr,
-                'kind': self.format_description(c.description),
-                'info': docstring,
+                'kind': kind,
+                'info': desc,
                 'menu': self.mark + ' ',
                 'dup': 1,
             })
