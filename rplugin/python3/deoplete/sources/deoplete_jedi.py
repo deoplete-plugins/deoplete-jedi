@@ -142,6 +142,10 @@ class Source(Base):
                 desc = p.description.strip()
                 if i == 0 and desc == 'self':
                     continue
+
+                if '\\n' in desc:
+                    desc = desc.replace('\\n', '\\x0A')
+
                 length += len(desc) + 2
                 params.append(desc)
 
