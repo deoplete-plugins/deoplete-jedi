@@ -43,7 +43,7 @@ set_debug:
 import_logger: set_debug
 	@sed -i ':a;N;$$!ba;s/import jedi\n\n\nclass Source/import jedi\n\n${IMPORT_LOGGER}\n\n\nclass Source/g' ${DEOPLETE_JEDI}
 
-import_timeit: import_logger
+import_timeit:
 	@sed -i ':a;N;$$!ba;s/\n\n\nclass Source/\n\n${IMPORT_TIMEIT}\n\nclass Source/g' ${DEOPLETE_JEDI}
 
 import_pyvmmonitor:
