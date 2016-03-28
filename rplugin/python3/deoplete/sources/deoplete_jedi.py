@@ -71,6 +71,9 @@ class Source(Base):
         self.cache_enabled = \
             self.vim.vars['deoplete#sources#jedi#enable_cache']
 
+        self.show_docstring = \
+            self.vim.vars['deoplete#sources#jedi#show_docstring']
+
         self.complete_min_length = \
             self.vim.vars['deoplete#auto_complete_start_length']
 
@@ -187,7 +190,13 @@ class Source(Base):
                 return (name, builtin_type, '', '')
 
         if type_ == 'class' and desc.startswith('builtins.'):
-            return (name, type_) + self.call_signature(comp)
+            if self.show_docstring:
+                return (name,
+                        type_,
+                        comp.docstring(),
+                        self.call_signature(comp)[1])
+            else:
+                return (name, type_) + self.call_signature(comp)
 
         if type_ == 'function':
             if comp.module_path not in cache and comp.line and comp.line > 1:
@@ -205,7 +214,13 @@ class Source(Base):
                     if line.startswith('@property'):
                         return (name, 'property', desc, '')
                     i -= 1
-            return (name, type_) + self.call_signature(comp)
+            if self.show_docstring:
+                return (name,
+                        type_,
+                        comp.docstring(),
+                        self.call_signature(comp)[1])
+            else:
+                return (name, type_) + self.call_signature(comp)
 
         # self.debug('Unhandled: %s, Type: %s, Desc: %s', comp.name, type_, desc)
         return (name, type_, '', '')
