@@ -18,3 +18,6 @@ let g:deoplete#sources#jedi#statement_length =
 
 let g:deoplete#sources#jedi#debug_enabled =
       \ get(g:, 'deoplete#sources#jedi#debug_enabled', 0)
+
+let g:deoplete#sources#jedi#show_docstring =
+      \ get(g:, 'deoplete#sources#jedi#show_docstring', 0)
