@@ -38,6 +38,7 @@ Plug 'zchee/deoplete-jedi'
   used instead.  Default: `50`
 - `deoplete#sources#jedi#enable_cache`: Enables caching of completions for
   faster results.  Default: `1`
+- `deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.  Default: `0`
 
 
 ## Virtual Environments
