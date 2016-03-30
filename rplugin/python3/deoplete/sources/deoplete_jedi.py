@@ -195,7 +195,8 @@ class Source(Base):
                 with open(comp.module_path, 'r') as fp:
                     cache[comp.module_path] = fp.readlines()
             lines = cache.get(comp.module_path)
-            if isinstance(lines, list) and len(lines) > 1 and comp.line > 1:
+            if isinstance(lines, list) and len(lines) > 1 \
+                    and comp.line < len(lines) and comp.line > 1:
                 # Check the function's decorators to check if it's decorated
                 # with @property
                 i = comp.line - 2
