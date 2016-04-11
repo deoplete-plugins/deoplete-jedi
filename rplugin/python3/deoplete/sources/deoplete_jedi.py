@@ -38,9 +38,6 @@ class Source(Base):
         self.use_short_types = \
             self.vim.vars['deoplete#sources#jedi#short_types']
 
-        self.cache_enabled = \
-            self.vim.vars['deoplete#sources#jedi#enable_cache']
-
         self.show_docstring = \
             self.vim.vars['deoplete#sources#jedi#show_docstring']
 
@@ -115,24 +112,23 @@ class Source(Base):
             # If starting an import, only show module results
             filters.append('module')
 
-        if self.cache_enabled:
-            cache_key, cache_line, extra_modules = cache_context(buf.name, context)
+        cache_key, cache_line, extra_modules = cache_context(buf.name, context)
 
-            if cache_key and cache_key in self.cache:
-                # XXX: Hash cache keys to reduce length?
-                cached = self.cache.get(cache_key)
-                lines = cached.get('lines', [0, 0])
-                modules = cached.get('modules')
-                if cache_line >= lines[0] and cache_line <= lines[1] \
-                        and all([filename in modules for filename in
-                                 extra_modules]) \
-                        and all([int(os.path.getmtime(filename)) == mtime
-                                 for filename, mtime in modules.items()]):
-                    # The cache is still valid
-                    refresh = False
+        if cache_key and cache_key in self.cache:
+            # XXX: Hash cache keys to reduce length?
+            cached = self.cache.get(cache_key)
+            lines = cached.get('lines', [0, 0])
+            modules = cached.get('modules')
+            if cache_line >= lines[0] and cache_line <= lines[1] \
+                    and all([filename in modules for filename in
+                             extra_modules]) \
+                    and all([int(os.path.getmtime(filename)) == mtime
+                             for filename, mtime in modules.items()]):
+                # The cache is still valid
+                refresh = False
 
-            if cached is None:
-                wait = True
+        if cached is None:
+            wait = True
 
         self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
         if cache_key and (not cached or refresh):
