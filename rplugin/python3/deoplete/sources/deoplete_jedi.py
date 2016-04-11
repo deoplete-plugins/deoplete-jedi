@@ -1,53 +1,20 @@
 import os
 import re
+import sys
+
+sys.path.insert(1, os.path.dirname(__file__))
 
 from deoplete.sources.base import Base
-from deoplete.util import load_external_module
-
-current = __file__
-load_external_module(current, 'jedi')
-import jedi
+from deoplete_jedi import server
+from deoplete_jedi.cache import cache_context
 
 _block_re = re.compile(r'^\s*(def|class)\s')
-
-# Type mapping.  Empty values will use the key value instead.
-# Keep them 5 characters max to minimize required space to display.
-_types = {
-    'import': 'imprt',
-    'class': '',
-    'function': 'def',
-    'globalstmt': 'var',
-    'instance': 'var',
-    'statement': 'var',
-    'keyword': 'keywd',
-    'module': 'mod',
-    'param': 'arg',
-    'property': 'prop',
-
-    'bool': '',
-    'bytes': 'byte',
-    'complex': 'cmplx',
-    'dict': '',
-    'list': '',
-    'float': '',
-    'int': '',
-    'object': 'obj',
-    'set': '',
-    'slice': '',
-    'str': '',
-    'tuple': '',
-    'mappingproxy': 'dict',  # cls.__dict__
-    'member_descriptor': 'cattr',
-    'getset_descriptor': 'cprop',
-    'method_descriptor': 'cdef',
-}
 
 
 class Source(Base):
 
     def __init__(self, vim):
         Base.__init__(self, vim)
-
         self.cache = {}
         self.name = 'jedi'
         self.mark = '[jedi]'
@@ -77,20 +44,9 @@ class Source(Base):
         self.complete_min_length = \
             self.vim.vars['deoplete#auto_complete_start_length']
 
-        # jedi core library settings
-        # http://jedi.jedidjah.ch/en/latest/docs/settings.html
-        jedi_settings = jedi.settings
-        # Completion output
-        jedi_settings.case_insensitive_completion = False
-        # Filesystem cache
-        cache_home = os.getenv('XDG_CACHE_HOME')
-        if cache_home is None:
-            cache_home = os.path.expanduser('~/.cache')
-        jedi_settings.cache_directory = os.path.join(cache_home, 'jedi')
-        # Dynamic stuff
-        jedi_settings.additional_dynamic_modules = [
-            b.name for b in self.vim.buffers
-            if b.name is not None and b.name.endswith('.py')]
+        self._client = server.Client(self.description_length,
+                                     self.use_short_types, self.show_docstring,
+                                     self.debug_enabled)
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
@@ -118,115 +74,6 @@ class Source(Base):
 
         return [start, line - 1]
 
-    def split_module(self, text, default_value=None):
-        """Utility to split the module text.
-
-        If there is nothing to split, return `default_value`.
-        """
-        m = re.search('([\w_\.]+)$', text)
-        if m and '.' in m.group(1):
-            return m.group(1).rsplit('.', 1)[0]
-        return default_value
-
-    def call_signature(self, comp):
-        """Construct the function's call signature.
-
-        comp.docstring() is not reliable and we don't need the entire
-        docstring.
-
-        Returns a tuple of (full, abbr) call signatures.
-        """
-        params = []
-        params_abbr = []
-        try:
-            # Total length includes parenthesis
-            length = len(comp.name)
-            for i, p in enumerate(comp.params):
-                desc = p.description.strip()
-                if i == 0 and desc == 'self':
-                    continue
-
-                if '\\n' in desc:
-                    desc = desc.replace('\\n', '\\x0A')
-
-                length += len(desc) + 2
-                params.append(desc)
-
-            params_abbr = params[:]
-            if self.description_length > 0:
-                if length > self.description_length:
-                    # First remove all keyword params to see if that makes it
-                    # short enough.
-                    params_abbr = [x.split('=', 1)[0] for x in params_abbr]
-                    length = len(comp.name) + sum([len(x) + 2
-                                                   for x in params_abbr])
-
-                while length + 3 > self.description_length \
-                        and len(params_abbr):
-                    # Keep removing params until short enough.
-                    length -= len(params_abbr[-1]) - 3
-                    params_abbr = params_abbr[:-1]
-                if len(params) > len(params_abbr):
-                    params_abbr.append('...')
-        except AttributeError:
-            pass
-
-        return ('{}({})'.format(comp.name, ', '.join(params)),
-                '{}({})'.format(comp.name, ', '.join(params_abbr)))
-
-    def parse_completion(self, comp, cache):
-        """Return a tuple describing the completion.
-
-        Returns (name, type, description, abbreviated)
-        """
-
-        name = comp.name
-        type_, desc = [x.strip() for x in comp.description.split(':', 1)]
-
-        if type_ == 'instance' and desc.startswith(('builtins.', 'posix.')):
-            # Simple description
-            builtin_type = desc.rsplit('.', 1)[-1]
-            if builtin_type in _types:
-                return (name, builtin_type, '', '')
-
-        if type_ == 'class' and desc.startswith('builtins.'):
-            if self.show_docstring:
-                return (name,
-                        type_,
-                        comp.docstring(),
-                        self.call_signature(comp)[1])
-            else:
-                return (name, type_) + self.call_signature(comp)
-
-        if type_ == 'function':
-            if comp.module_path not in cache and comp.line and comp.line > 1 \
-                    and os.path.exists(comp.module_path):
-                with open(comp.module_path, 'r') as fp:
-                    cache[comp.module_path] = fp.readlines()
-            lines = cache.get(comp.module_path)
-            if isinstance(lines, list) and len(lines) > 1 \
-                    and comp.line < len(lines) and comp.line > 1:
-                # Check the function's decorators to check if it's decorated
-                # with @property
-                i = comp.line - 2
-                while i >= 0:
-                    line = lines[i].lstrip()
-                    if not line.startswith('@'):
-                        break
-                    if line.startswith('@property'):
-                        return (name, 'property', desc, '')
-                    i -= 1
-            if self.show_docstring:
-                return (name,
-                        type_,
-                        comp.docstring(),
-                        self.call_signature(comp)[1])
-            else:
-                return (name, type_) + self.call_signature(comp)
-
-        # self.debug('Unhandled: %s, Type: %s, Desc: %s', comp.name, type_, desc)
-        return (name, type_, '', '')
-
     def gather_candidates(self, context):
         line = context['position'][1]
         col = context['complete_position']
@@ -235,7 +82,6 @@ class Source(Base):
 
         extra_modules = []
         cache_key = None
-        deoplete_input = context['input'].strip()
         cache_line = 0
 
         # Inclusion filters for the results
@@ -247,66 +93,8 @@ class Source(Base):
             filters.append('module')
 
         if self.cache_enabled:
-            # Caching based on context input.  If the input is blank, it was
-            # triggered with `.` to get module completions.
-            #
-            # The module files as reported by Jedi are stored with their
-            # modification times to help detect if a cache needs to be
-            # refreshed.
-            #
-            # For scoped variables in the buffer, construct a cache key using
-            # the filename.  The buffer file's modification time is checked to
-            # see if the completion needs to be refreshed.  The approximate
-            # scope lines are cached to help invalidate the cache based on line
-            # position.
-
-            if deoplete_input.startswith(('import ', 'from ')):
-                # Cache imports with buffer filename as the key prefix.
-                # For `from` imports, the first part of the statement is
-                # considered to be the same as `import` for caching.
-                suffix = 'import'
-
-                # The trailing whitespace is significant for caching imports.
-                import_line = context['input'].lstrip()
-
-                if import_line.startswith('import'):
-                    m = re.search(r'^import\s+(\S+)$', import_line)
-                else:
-                    m = re.search(r'^from\s+(\S+)\s+import\s+', import_line)
-                    if m:
-                        # Treat the first part of the import as a cached
-                        # module, but cache it per-buffer.
-                        cache_key = '{}.from.{}'.format(buf.name, m.group(1))
-                    else:
-                        m = re.search(r'^from\s+(\S+)$', import_line)
-
-                if not cache_key:
-                    if m:
-                        suffix = self.split_module(m.group(1), suffix)
-                        cache_key = '{}.import.{}'.format(buf.name, suffix)
-                        if os.path.exists(buf.name):
-                            extra_modules.append(buf.name)
-
-            if not cache_key:
-                # Find a cacheable key first
-                cache_key = self.split_module(deoplete_input)
-                if cache_key:
-                    if cache_key.startswith('self'):
-                        # TODO: Get class lines and cache these differently
-                        # based on cursor position.
-                        # Cache `self.`, but monitor buffer file's modification
-                        # time.
-                        if os.path.exists(buf.name):
-                            extra_modules.append(buf.name)
-                        cache_key = '{}.{}'.format(buf.name, cache_key)
-                        cache_line = line - 1
-                        os.path
-                elif context.get('complete_str'):
-                    # Note: Module completions will be an empty string.
-                    cache_key = buf.name
-                    if os.path.exists(buf.name):
-                        extra_modules.append(buf.name)
-                    cache_line = line - 1
+            cache_key, cache_line, extra_modules = cache_context(buf.name,
+                                                                 context)
 
             if cache_key and cache_key in self.cache:
                 # XXX: Hash cache keys to reduce length?
@@ -326,22 +114,18 @@ class Source(Base):
                     return out
 
         try:
-            completions = \
-                jedi.Script('\n'.join(src), line, col, buf.name).completions()
+            completions = self._client.completions('\n'.join(src), line, col,
+                                                   str(buf.name))
         except Exception:
             return []
 
         out = []
-        tmp_filecache = {}
         modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
         for c in completions:
-            if c.module_path and c.module_path not in modules \
-                    and os.path.exists(c.module_path):
-                modules[c.module_path] = int(os.path.getmtime(c.module_path))
-
-            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
-            kind = type_ if not self.use_short_types \
-                else _types.get(type_) or type_
+            module_path, name, type_, desc, abbr, kind = c
+            if module_path and module_path not in modules \
+                    and os.path.exists(module_path):
+                modules[module_path] = int(os.path.getmtime(module_path))
 
             out.append({
                 '$type': type_,
