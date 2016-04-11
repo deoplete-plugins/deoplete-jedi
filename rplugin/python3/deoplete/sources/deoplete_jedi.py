@@ -44,8 +44,12 @@ class Source(Base):
         self.complete_min_length = \
             self.vim.vars['deoplete#auto_complete_start_length']
 
-        worker.start(2, self.description_length, self.use_short_types,
-                     self.show_docstring, self.debug_enabled)
+        self.worker_threads = \
+            self.vim.vars['deoplete#sources#jedi#worker_threads']
+
+        worker.start(max(1, self.worker_threads), self.description_length,
+                     self.use_short_types, self.show_docstring,
+                     self.debug_enabled)
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
