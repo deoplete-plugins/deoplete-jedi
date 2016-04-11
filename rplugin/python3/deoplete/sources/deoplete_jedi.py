@@ -1,12 +1,15 @@
 import os
 import re
 import sys
+import time
+import queue
 
 sys.path.insert(1, os.path.dirname(__file__))
 
 from deoplete.sources.base import Base
-from deoplete_jedi import server
+from deoplete_jedi import worker
 from deoplete_jedi.cache import cache_context
+
 
 _block_re = re.compile(r'^\s*(def|class)\s')
 
@@ -44,9 +47,8 @@ class Source(Base):
         self.complete_min_length = \
             self.vim.vars['deoplete#auto_complete_start_length']
 
-        self._client = server.Client(self.description_length,
-                                     self.use_short_types, self.show_docstring,
-                                     self.debug_enabled)
+        worker.start(2, self.description_length, self.use_short_types,
+                     self.show_docstring, self.debug_enabled)
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
@@ -74,7 +76,25 @@ class Source(Base):
 
         return [start, line - 1]
 
+    def process_result_queue(self):
+        """Process completion results
+
+        This should be called before new completions begin.
+        """
+        while True:
+            try:
+                cache_key, compl = worker.comp_queue.get(block=False,
+                                                         timeout=0.05)
+                cached = self.cache.get(cache_key)
+                # Ensure that the incoming completion is actually newer than
+                # the current one.
+                if cached is None or cached.get('time') <= compl.get('time'):
+                    self.cache[cache_key] = compl
+            except queue.Empty:
+                break
+
     def gather_candidates(self, context):
+        self.process_result_queue()
         line = context['position'][1]
         col = context['complete_position']
         buf = self.vim.current.buffer
@@ -83,6 +103,9 @@ class Source(Base):
         extra_modules = []
         cache_key = None
         cache_line = 0
+        cached = None
+        refresh = True
+        wait = False
 
         # Inclusion filters for the results
         filters = []
@@ -93,64 +116,45 @@ class Source(Base):
             filters.append('module')
 
         if self.cache_enabled:
-            cache_key, cache_line, extra_modules = cache_context(buf.name,
-                                                                 context)
+            cache_key, cache_line, extra_modules = cache_context(buf.name, context)
 
             if cache_key and cache_key in self.cache:
                 # XXX: Hash cache keys to reduce length?
                 cached = self.cache.get(cache_key)
                 lines = cached.get('lines', [0, 0])
                 modules = cached.get('modules')
-                # TODO: If cache is invalid, return stale results and start
-                # a thread to refresh.
                 if cache_line >= lines[0] and cache_line <= lines[1] \
                         and all([filename in modules for filename in
                                  extra_modules]) \
                         and all([int(os.path.getmtime(filename)) == mtime
                                  for filename, mtime in modules.items()]):
-                    out = cached.get('completions', [])
-                    if filters:
-                        return [x for x in out if x['$type'] in filters]
-                    return out
+                    # The cache is still valid
+                    refresh = False
 
-        try:
-            completions = self._client.completions('\n'.join(src), line, col,
-                                                   str(buf.name))
-        except Exception:
-            return []
+            if cached is None:
+                wait = True
 
-        out = []
-        modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
-        for c in completions:
-            module_path, name, type_, desc, abbr, kind = c
-            if module_path and module_path not in modules \
-                    and os.path.exists(module_path):
-                modules[module_path] = int(os.path.getmtime(module_path))
-
-            out.append({
-                '$type': type_,
-                'word': name,
-                'abbr': abbr,
-                'kind': kind,
-                'info': desc,
-                'menu': self.mark + ' ',
-                'dup': 1,
-            })
-
-        if cache_key:
-            lines = [0, 0]
+        self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
+        if cache_key and (not cached or refresh):
+            cache_lines = [0, 0]
             if cache_line:
-                lines = self.indent_bounds(line, src)
+                cache_lines = self.indent_bounds(line, src)
+            n = time.time()
+            worker.work_queue.put((cache_key, cache_lines, extra_modules,
+                                   '\n'.join(src), line, col, str(buf.name)))
+            while wait and time.time() - n < 1:
+                self.process_result_queue()
+                cached = self.cache.get(cache_key)
+                if cached and cached.get('time') >= n:
+                    break
+                time.sleep(0.05)
 
-            self.cache[cache_key] = {
-                'lines': lines,
-                'modules': modules,
-                'completions': out,
-            }
-
-        if filters:
-            return [x for x in out if x['$type'] in filters]
-        return out
+        if cached:
+            out = cached.get('completions')
+            if filters:
+                return [x for x in out if x['$type'] in filters]
+            return out
+        return []
 
     def format_description(self, raw_desc):
         description = re.sub('\n|  ', '', raw_desc)
