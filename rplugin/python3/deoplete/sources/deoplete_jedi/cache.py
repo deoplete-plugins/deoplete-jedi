@@ -50,39 +50,40 @@ def cache_context(filename, context):
             if not m:
                 # There shouldn't be an object that is named 'import', but add
                 # ~ at the end to prevent `import.` from showing completions.
-                cache_key = 'import~'
+                cache_key = ('import~',)
         else:
             m = re.search(r'^from\s+(\S+)\s+import\s+', deoplete_input)
             if m:
                 # Treat the first part of the import as a cached
                 # module, but cache it per-buffer.
-                cache_key = '{}.from.{}'.format(filename, m.group(1))
+                cache_key = (filename, 'from', m.group(1))
             else:
                 m = re.search(r'^from\s+(\S+)$', deoplete_input)
 
         if not cache_key and m:
             suffix = split_module(m.group(1), suffix)
-            cache_key = '{}.import.{}'.format(filename, suffix)
+            cache_key = (filename, 'import', suffix)
             if os.path.exists(filename):
                 extra_modules.append(filename)
 
     if not cache_key:
         # Find a cacheable key first
-        cache_key = split_module(deoplete_input.strip())
-        if cache_key:
-            if cache_key.startswith('self'):
+        obj = split_module(deoplete_input.strip())
+        if obj:
+            cache_key = (obj,)
+            if obj.startswith('self'):
                 # TODO: Get class lines and cache these differently
                 # based on cursor position.
                 # Cache `self.`, but monitor buffer file's modification
                 # time.
                 if os.path.exists(filename):
                     extra_modules.append(filename)
-                cache_key = '{}.{}'.format(filename, cache_key)
+                cache_key = (filename, obj)
                 cache_line = line - 1
                 os.path
         elif context.get('complete_str'):
             # Note: Module completions will be an empty string.
-            cache_key = filename
+            cache_key = (filename, 'names')
             if os.path.exists(filename):
                 extra_modules.append(filename)
             cache_line = line - 1
