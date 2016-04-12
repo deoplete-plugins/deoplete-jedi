@@ -126,11 +126,8 @@ class Source(Base):
         if cache_key and cache_key in self.cache:
             # XXX: Hash cache keys to reduce length?
             cached = self.cache.get(cache_key)
-            lines = cached.get('lines', [0, 0])
             modules = cached.get('modules')
-            if cache_line >= lines[0] and cache_line <= lines[1] \
-                    and all([filename in modules for filename in
-                             extra_modules]) \
+            if all([filename in modules for filename in extra_modules]) \
                     and all([int(os.path.getmtime(filename)) == mtime
                              for filename, mtime in modules.items()]):
                 # The cache is still valid
@@ -141,12 +138,9 @@ class Source(Base):
 
         self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
         if cache_key and (not cached or refresh):
-            cache_lines = [0, 0]
-            if cache_line:
-                cache_lines = self.indent_bounds(line, src)
             n = time.time()
-            worker.work_queue.put((cache_key, cache_lines, extra_modules,
-                                   '\n'.join(src), line, col, str(buf.name)))
+            worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
+                                   line, col, str(buf.name)))
             while wait and time.time() - n < 1:
                 self.process_result_queue()
                 cached = self.cache.get(cache_key)

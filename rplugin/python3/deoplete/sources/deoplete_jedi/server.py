@@ -105,22 +105,16 @@ class Server(object):
         self.show_docstring = show_docstring
 
     def _loop(self):
-        import jedi
         while True:
             data = stream_read(sys.stdin)
             if not isinstance(data, tuple):
                 break
-            source, line, col, filename = data
-            log.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
-            completions = jedi.Script(source, line, col, filename).completions()
-            out = []
-            tmp_filecache = {}
-            for c in completions:
-                name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
-                kind = type_ if not self.use_short_types \
-                    else _types.get(type_) or type_
-                out.append((c.module_path, name, type_, desc, abbr, kind))
-            stream_write(sys.stdout, out)
+
+            cache_key, source, line, col, filename = data
+            if cache_key[-1] == 'names':
+                self.name_completion(source, filename)
+            else:
+                self.script_completion(source, line, col, filename)
 
     def run(self):
         log.debug(sys.path)
@@ -130,6 +124,36 @@ class Server(object):
             log.debug('Input closed')
         except Exception:
             log.exception('exception')
+
+    def script_completion(self, source, line, col, filename):
+        import jedi
+        log.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
+        completions = jedi.Script(source, line, col, filename).completions()
+        out = []
+        tmp_filecache = {}
+        for c in completions:
+            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
+            kind = type_ if not self.use_short_types \
+                else _types.get(type_) or type_
+            out.append((c.module_path, name, type_, desc, abbr, kind))
+        stream_write(sys.stdout, out)
+
+    def name_completion(self, source, filename):
+        import jedi
+        completions = jedi.api.names(source, filename, all_scopes=True)
+        out = []
+        tmp_filecache = {}
+        seen = set()
+        for c in completions:
+            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
+            seen_key = (type_, name)
+            if seen_key in seen:
+                continue
+            seen.add(seen_key)
+            kind = type_ if not self.use_short_types \
+                else _types.get(type_) or type_
+            out.append((c.module_path, name, type_, desc, abbr, kind))
+        stream_write(sys.stdout, out)
 
     def call_signature(self, comp):
         """Construct the function's call signature.
@@ -182,8 +206,14 @@ class Server(object):
 
         Returns (name, type, description, abbreviated)
         """
+        from jedi.api.classes import Completion
         name = comp.name
-        type_, desc = [x.strip() for x in comp.description.split(':', 1)]
+
+        if isinstance(comp, Completion):
+            type_, desc = [x.strip() for x in comp.description.split(':', 1)]
+        else:
+            type_ = comp.type
+            desc = comp.description
 
         if type_ == 'instance' and desc.startswith(('builtins.', 'posix.')):
             # Simple description

@@ -26,9 +26,9 @@ class Worker(threading.Thread):
         super(Worker, self).__init__()
         self.log = logging.getLogger('deoplete.jedi.%s' % self.name)
 
-    def completion_work(self, cache_key, cache_lines, extra_modules, source,
+    def completion_work(self, cache_key, extra_modules, source,
                         line, col, filename):
-        completions = self._client.completions(source, line, col, filename)
+        completions = self._client.completions(cache_key, source, line, col, filename)
         out = []
         modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
         for c in completions:
@@ -49,7 +49,6 @@ class Worker(threading.Thread):
 
         cached = {
             'time': time.time(),
-            'lines': cache_lines,
             'modules': modules,
             'completions': out,
         }
