@@ -47,9 +47,7 @@ class Source(Base):
         self.worker_threads = \
             self.vim.vars['deoplete#sources#jedi#worker_threads']
 
-        worker.start(max(1, self.worker_threads), self.description_length,
-                     self.use_short_types, self.show_docstring,
-                     self.debug_enabled)
+        self.workers_started = False
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
@@ -95,7 +93,14 @@ class Source(Base):
                 break
 
     def gather_candidates(self, context):
+        if not self.workers_started:
+            worker.start(max(1, self.worker_threads), self.description_length,
+                         self.use_short_types, self.show_docstring,
+                         self.debug_enabled)
+            self.workers_started = True
+
         self.process_result_queue()
+
         line = context['position'][1]
         col = context['complete_position']
         buf = self.vim.current.buffer
