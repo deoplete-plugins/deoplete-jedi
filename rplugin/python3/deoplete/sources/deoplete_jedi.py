@@ -155,10 +155,3 @@ class Source(Base):
                 return [x for x in out if x['$type'] in filters]
             return out
         return []
-
-    def format_description(self, raw_desc):
-        description = re.sub('\n|  ', '', raw_desc)
-        if len(description) > self.description_length:
-            description = description[:self.description_length]
-
-        return description
