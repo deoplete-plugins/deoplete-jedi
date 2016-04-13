@@ -43,6 +43,20 @@ def get_parents(source, line, class_only=False):
     return parents
 
 
+def is_import(source, obj):
+    """Test if the obj is an import.
+
+    Very simple testing and may not have a 100% success in all cases.
+    """
+    pattern = (r'\s*(?:from\s+\S+\s+)?import(?:[\w,\s\(]*)?({0})'
+               r'(?:[,\s\)]*)?(?!import|from)').format(re.escape(obj))
+    m = re.search(pattern, ' '.join(source))
+    if m:
+        log.debug('import match: %r', m.group(1))
+        return True
+    return False
+
+
 def cache_context(filename, context, source):
     """Caching based on context input.
 
@@ -108,6 +122,15 @@ def cache_context(filename, context, source):
                 parents = get_parents(source, line, class_only=True)
                 parents.insert(0, cur_module)
                 cache_key = (filename, tuple(parents), obj)
+            elif not is_import(source, obj):
+                # A quick scan revealed that the dot completion doesn't involve
+                # an imported module.  Treat it like a scoped variable and
+                # ensure the cache invalidates when the file is saved.
+                parents = get_parents(source, line)
+                parents.insert(0, cur_module)
+                cache_key = (filename, tuple(parents), obj)
+                if os.path.exists(filename):
+                    extra_modules.append(filename)
         elif context.get('complete_str'):
             parents = get_parents(source, line)
             parents.insert(0, cur_module)
