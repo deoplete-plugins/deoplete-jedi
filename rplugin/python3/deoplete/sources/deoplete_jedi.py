@@ -110,6 +110,10 @@ class Source(Base):
                 # The cache is still valid
                 refresh = False
 
+        if cache_key and cache_key[-1] == 'vars':
+            # Always refresh scoped variables
+            refresh = True
+
         if cached is None:
             wait = True
 
