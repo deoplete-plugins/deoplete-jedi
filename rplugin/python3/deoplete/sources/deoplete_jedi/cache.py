@@ -11,7 +11,7 @@ def split_module(text, default_value=None):
 
     If there is nothing to split, return `default_value`.
     """
-    m = re.search('([\w_\.]+)$', text)
+    m = re.search('([\S\.]+)$', text)
     if m and '.' in m.group(1):
         return m.group(1).rsplit('.', 1)[0]
     return default_value
