@@ -17,7 +17,33 @@ def split_module(text, default_value=None):
     return default_value
 
 
-def cache_context(filename, context):
+def get_parents(source, line, class_only=False):
+    """Find the parent blocks
+
+    Collects parent blocks that contain the current line to help form a cache
+    key based on variable scope.
+    """
+    parents = []
+    start = line - 1
+    indent = len(source[start]) - len(source[start].lstrip())
+    if class_only:
+        pattern = r'^\s*class\s+(\w+)'
+    else:
+        pattern = r'^\s*(?:def|class)\s+(\w+)'
+
+    for i in range(start, 0, -1):
+        s_line = source[i].lstrip()
+        l_indent = len(source[i]) - len(s_line)
+        if s_line and l_indent < indent:
+            m = re.search(pattern, s_line)
+            indent = l_indent
+            if m:
+                parents.insert(0, m.group(1))
+
+    return parents
+
+
+def cache_context(filename, context, source):
     """Caching based on context input.
 
     If the input is blank, it was triggered with `.` to get module completions.
@@ -29,12 +55,13 @@ def cache_context(filename, context):
     filename.  The buffer file's modification time is checked to see if the
     completion needs to be refreshed.  The approximate scope lines are cached
     to help invalidate the cache based on line position.
+
+    Cache keys are made using tuples to make them easier to interpret later.
     """
     line = context['position'][1]
     deoplete_input = context['input'].lstrip()
     cache_key = None
     extra_modules = []
-    cache_line = 0
 
     if deoplete_input.startswith(('import ', 'from ')):
         # Cache imports with buffer filename as the key prefix.
@@ -67,25 +94,25 @@ def cache_context(filename, context):
                 extra_modules.append(filename)
 
     if not cache_key:
-        # Find a cacheable key first
         obj = split_module(deoplete_input.strip())
+        cur_module = os.path.basename(filename)
+        cur_module = os.path.splitext(cur_module)[0]
+
         if obj:
             cache_key = (obj,)
             if obj.startswith('self'):
-                # TODO: Get class lines and cache these differently
-                # based on cursor position.
-                # Cache `self.`, but monitor buffer file's modification
-                # time.
                 if os.path.exists(filename):
                     extra_modules.append(filename)
-                cache_key = (filename, obj)
-                cache_line = line - 1
-                os.path
+                # `self` is a special case object that needs a scope included
+                # in the cache key.
+                parents = get_parents(source, line, class_only=True)
+                parents.insert(0, cur_module)
+                cache_key = (filename, tuple(parents), obj)
         elif context.get('complete_str'):
-            # Note: Module completions will be an empty string.
-            cache_key = (filename, 'names')
+            parents = get_parents(source, line)
+            parents.insert(0, cur_module)
+            cache_key = (filename, tuple(parents), 'vars')
             if os.path.exists(filename):
                 extra_modules.append(filename)
-            cache_line = line - 1
 
-    return cache_key, cache_line, extra_modules
+    return cache_key, extra_modules

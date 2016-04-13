@@ -28,7 +28,8 @@ class Worker(threading.Thread):
 
     def completion_work(self, cache_key, extra_modules, source,
                         line, col, filename):
-        completions = self._client.completions(cache_key, source, line, col, filename)
+        completions = self._client.completions(cache_key, source, line, col,
+                                               filename)
         out = []
         modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
         for c in completions:

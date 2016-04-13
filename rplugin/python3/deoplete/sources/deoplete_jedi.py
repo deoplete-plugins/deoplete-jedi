@@ -53,28 +53,6 @@ class Source(Base):
         m = re.search(r'\w*$', context['input'])
         return m.start() if m else -1
 
-    def indent_bounds(self, line, source):
-        """Gets the bounds for a Python block.
-
-        Only search for def or class for context.  Jedi only returns results
-        from the lines before the current one.
-        """
-        start = line - 1
-        indent = len(source[start]) - len(source[start].lstrip())
-
-        for i in range(start, 0, -1):
-            s_line = source[i]
-            if not s_line.strip() or not _block_re.match(s_line):
-                continue
-
-            line_indent = len(s_line) - len(s_line.lstrip())
-            if line_indent < indent:
-                start = i
-                indent = line_indent
-                break
-
-        return [start, line - 1]
-
     def process_result_queue(self):
         """Process completion results
 
@@ -108,7 +86,6 @@ class Source(Base):
 
         extra_modules = []
         cache_key = None
-        cache_line = 0
         cached = None
         refresh = True
         wait = False
@@ -121,7 +98,7 @@ class Source(Base):
             # If starting an import, only show module results
             filters.append('module')
 
-        cache_key, cache_line, extra_modules = cache_context(buf.name, context)
+        cache_key, extra_modules = cache_context(buf.name, context, src)
 
         if cache_key and cache_key in self.cache:
             # XXX: Hash cache keys to reduce length?

@@ -111,8 +111,9 @@ class Server(object):
                 break
 
             cache_key, source, line, col, filename = data
-            if cache_key[-1] == 'names':
-                self.name_completion(source, filename)
+            if cache_key[-1] == 'vars':
+                # Parent string is second to last
+                self.scoped_completions(source, filename, cache_key[-2])
             else:
                 self.script_completion(source, line, col, filename)
 
@@ -126,6 +127,8 @@ class Server(object):
             log.exception('exception')
 
     def script_completion(self, source, line, col, filename):
+        """Standard Jedi completions
+        """
         import jedi
         log.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
         completions = jedi.Script(source, line, col, filename).completions()
@@ -138,18 +141,40 @@ class Server(object):
             out.append((c.module_path, name, type_, desc, abbr, kind))
         stream_write(sys.stdout, out)
 
-    def name_completion(self, source, filename):
+    def get_parents(self, c):
+        """Collect parent blocks
+
+        This is for matching a request's cache key when performing scoped
+        completions.
+        """
+        parents = []
+        while True:
+            try:
+                c = c.parent()
+                parents.insert(0, c.name)
+                if c.type == 'module':
+                    break
+            except AttributeError:
+                break
+        return tuple(parents)
+
+    def scoped_completions(self, source, filename, parent):
+        """Scoped completion
+
+        This gets all definitions for a specific scope allowing them to be
+        cached without needing to consider the current position in the source.
+        This would be slow in Vim without threading.
+        """
         import jedi
         completions = jedi.api.names(source, filename, all_scopes=True)
         out = []
         tmp_filecache = {}
-        seen = set()
         for c in completions:
-            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
-            seen_key = (type_, name)
-            if seen_key in seen:
+            c_parents = self.get_parents(c)
+            if parent and (len(c_parents) > len(parent) or
+                           c_parents != parent[:len(c_parents)]):
                 continue
-            seen.add(seen_key)
+            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
             kind = type_ if not self.use_short_types \
                 else _types.get(type_) or type_
             out.append((c.module_path, name, type_, desc, abbr, kind))
