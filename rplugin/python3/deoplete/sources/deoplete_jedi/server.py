@@ -169,12 +169,17 @@ class Server(object):
         completions = jedi.api.names(source, filename, all_scopes=True)
         out = []
         tmp_filecache = {}
+        seen = set()
         for c in completions:
             c_parents = self.get_parents(c)
             if parent and (len(c_parents) > len(parent) or
                            c_parents != parent[:len(c_parents)]):
                 continue
             name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
+            seen_key = (type_, name)
+            if seen_key in seen:
+                continue
+            seen.add(seen_key)
             kind = type_ if not self.use_short_types \
                 else _types.get(type_) or type_
             out.append((c.module_path, name, type_, desc, abbr, kind))
