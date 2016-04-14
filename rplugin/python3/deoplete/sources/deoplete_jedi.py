@@ -47,10 +47,23 @@ class Source(Base):
             self.vim.vars['deoplete#sources#jedi#worker_threads']
 
         self.workers_started = False
+        self.boilerplate = []  # Completions that are included in all results
 
     def get_complete_position(self, context):
         m = re.search(r'\w*$', context['input'])
         return m.start() if m else -1
+
+    def mix_boilerplate(self, completions):
+        if not self.boilerplate:
+            boilerplate = cache.retrieve(('boilerplate~',))
+            if boilerplate:
+                self.boilerplate[:] = boilerplate.completions
+
+        seen = set()
+        for item in sorted(self.boilerplate + completions, key=lambda x: x['word'].lower()):
+            if item['word'] in seen:
+                continue
+            yield item
 
     def process_result_queue(self):
         """Process completion results
@@ -77,6 +90,11 @@ class Source(Base):
                          self.use_short_types, self.show_docstring,
                          self.debug_enabled)
             self.workers_started = True
+
+        if not self.boilerplate:
+            # This should be the first time any completion happened, so `wait`
+            # will be True.
+            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
 
         self.process_result_queue()
 
@@ -135,9 +153,10 @@ class Source(Base):
         if cached:
             cached.touch()
             if cached.completions is None:
-                return []
+                return list(self.mix_boilerplate([]))
 
+            out = self.mix_boilerplate(cached.completions[:])
             if filters:
-                return [x for x in cached.completions if x['$type'] in filters]
-            return cached.completions
+                return [x for x in out if x['$type'] in filters]
+            return list(out)
         return []
