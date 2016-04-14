@@ -2,6 +2,7 @@ import os
 import re
 import time
 import logging
+import hashlib
 import threading
 
 _cache_lock = threading.RLock()
@@ -112,9 +113,9 @@ def is_import(source, obj):
 
     Very simple testing and may not have a 100% success in all cases.
     """
-    pattern = (r'\s*(?:from\s+\S+\s+)?import(?:[\w,\s\(]*)?({0})'
-               r'(?:[,\s\)]*)?(?!import|from)').format(re.escape(obj))
-    m = re.search(pattern, ' '.join(source))
+    pattern = (r'^\s*(?:from\s+[\w\._]+\s+)?import(?:[\w,\s\(]*)?({0})'
+               r'(?:[,\s\)]*)?.*(?!import|from)').format(re.escape(obj))
+    m = re.search(pattern, '\n'.join(source), re.S | re.M)
     if m:
         log.debug('import match: %r', m.group(1))
         return True
@@ -136,6 +137,7 @@ def cache_context(filename, context, source):
 
     Cache keys are made using tuples to make them easier to interpret later.
     """
+    filename_hash = hashlib.md5(filename.encode('utf8')).hexdigest()
     line = context['position'][1]
     deoplete_input = context['input'].lstrip()
     cache_key = None
@@ -161,13 +163,13 @@ def cache_context(filename, context, source):
             if m:
                 # Treat the first part of the import as a cached
                 # module, but cache it per-buffer.
-                cache_key = (filename, 'from', m.group(1))
+                cache_key = (filename_hash, 'from', m.group(1))
             else:
                 m = re.search(r'^from\s+(\S+)$', deoplete_input)
 
         if not cache_key and m:
             suffix = split_module(m.group(1), suffix)
-            cache_key = (filename, 'import', suffix)
+            cache_key = (filename_hash, 'import', suffix)
             if os.path.exists(filename):
                 extra_modules.append(filename)
 
@@ -185,20 +187,20 @@ def cache_context(filename, context, source):
                 # in the cache key.
                 parents = get_parents(source, line, class_only=True)
                 parents.insert(0, cur_module)
-                cache_key = (filename, tuple(parents), obj)
+                cache_key = (filename_hash, tuple(parents), obj)
             elif not is_import(source, obj):
                 # A quick scan revealed that the dot completion doesn't involve
                 # an imported module.  Treat it like a scoped variable and
                 # ensure the cache invalidates when the file is saved.
                 parents = get_parents(source, line)
                 parents.insert(0, cur_module)
-                cache_key = (filename, tuple(parents), obj)
+                cache_key = (filename_hash, tuple(parents), obj)
                 if os.path.exists(filename):
                     extra_modules.append(filename)
         elif context.get('complete_str'):
             parents = get_parents(source, line)
             parents.insert(0, cur_module)
-            cache_key = (filename, tuple(parents), 'vars')
+            cache_key = (filename_hash, tuple(parents), 'vars')
             if os.path.exists(filename):
                 extra_modules.append(filename)
 

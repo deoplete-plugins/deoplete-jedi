@@ -59,8 +59,8 @@ class Source(Base):
         """
         while True:
             try:
-                cache_key, compl = worker.comp_queue.get(block=False,
-                                                         timeout=0.05)
+                compl = worker.comp_queue.get(block=False, timeout=0.05)
+                cache_key = compl.get('cache_key')
                 cached = cache.retrieve(cache_key)
                 # Ensure that the incoming completion is actually newer than
                 # the current one.
@@ -110,7 +110,9 @@ class Source(Base):
                 # The cache is still valid
                 refresh = False
 
-        if cache_key and cache_key[-1] == 'vars':
+        if cache_key and (cache_key[-1] == 'vars' or
+                          (cached and len(cache_key) == 1 and
+                           not len(cached.modules))):
             # Always refresh scoped variables
             refresh = True
 
