@@ -16,6 +16,7 @@ import sys
 import struct
 import logging
 import argparse
+import functools
 import subprocess
 from glob import glob
 
@@ -106,6 +107,27 @@ def strip_decor(source):
     return re.sub(r'^(\s*)@\w+', r'\1', source, flags=re.M)
 
 
+def retry_completion(func):
+    """Decorator to retry a completion
+
+    A second attempt is made with decorators stripped from the source.
+    """
+    @functools.wraps(func)
+    def wrapper(self, source, *args, **kwargs):
+        try:
+            return func(self, source, *args, **kwargs)
+        except Exception:
+            if '@' in source:
+                log.warn('Retrying %s', func.__name__)
+                try:
+                    return func(self, strip_decor(source), *args, **kwargs)
+                except:
+                    log.warn('Failed %s', func.__name__)
+            else:
+                log.warn('Completion failed', exc_info=True)
+    return wrapper
+
+
 class Server(object):
     """Server class
 
@@ -140,29 +162,10 @@ class Server(object):
             if cache_key[-1] == 'vars':
                 # Attempt scope completion.  If it fails, it should fall
                 # through to script completion.
-                try:
-                    # Parent string is second to last
-                    out = self.scoped_completions(source, filename, cache_key[-2])
-                except Exception:
-                    log.debug('Scope completion failed')
-                    if '@' in source:
-                        try:
-                            out = self.scoped_completions(strip_decor(source),
-                                                          filename, cache_key[-2])
-                        except Exception:
-                            log.debug('Second scope completion failed')
+                out = self.scoped_completions(source, filename, cache_key[-2])
 
             if not out:
-                try:
-                    out = self.script_completion(source, line, col, filename)
-                except Exception:
-                    log.debug('Script completion failed')
-                    if '@' in source:
-                        try:
-                            out = self.script_completion(strip_decor(source),
-                                                         line, col, filename)
-                        except Exception:
-                            log.debug('Second script completion failed')
+                out = self.script_completion(source, line, col, filename)
 
             stream_write(sys.stdout, out)
 
@@ -201,6 +204,7 @@ class Server(object):
 
         return add_path
 
+    @retry_completion
     def script_completion(self, source, line, col, filename):
         """Standard Jedi completions
         """
@@ -233,6 +237,7 @@ class Server(object):
                 break
         return tuple(parents)
 
+    @retry_completion
     def scoped_completions(self, source, filename, parent):
         """Scoped completion
 
