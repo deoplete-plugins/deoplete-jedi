@@ -8,7 +8,7 @@ sys.path.insert(1, os.path.dirname(__file__))
 
 from deoplete.sources.base import Base
 from deoplete_jedi import worker
-from deoplete_jedi.cache import cache_context
+from deoplete_jedi import cache
 
 
 _block_re = re.compile(r'^\s*(def|class)\s')
@@ -18,7 +18,6 @@ class Source(Base):
 
     def __init__(self, vim):
         Base.__init__(self, vim)
-        self.cache = {}
         self.name = 'jedi'
         self.mark = '[jedi]'
         self.rank = 500
@@ -62,16 +61,17 @@ class Source(Base):
             try:
                 cache_key, compl = worker.comp_queue.get(block=False,
                                                          timeout=0.05)
-                cached = self.cache.get(cache_key)
+                cached = cache.retrieve(cache_key)
                 # Ensure that the incoming completion is actually newer than
                 # the current one.
-                if cached is None or cached.get('time') <= compl.get('time'):
-                    self.cache[cache_key] = compl
+                if cached is None or cached.time <= compl.get('time'):
+                    cache.store(cache_key, compl)
             except queue.Empty:
                 break
 
     def gather_candidates(self, context):
         if not self.workers_started:
+            cache.start_reaper()
             worker.start(max(1, self.worker_threads), self.description_length,
                          self.use_short_types, self.show_docstring,
                          self.debug_enabled)
@@ -98,12 +98,12 @@ class Source(Base):
             # If starting an import, only show module results
             filters.append('module')
 
-        cache_key, extra_modules = cache_context(buf.name, context, src)
+        cache_key, extra_modules = cache.cache_context(buf.name, context, src)
 
-        if cache_key and cache_key in self.cache:
+        if cache_key and cache.exists(cache_key):
             # XXX: Hash cache keys to reduce length?
-            cached = self.cache.get(cache_key)
-            modules = cached.get('modules')
+            cached = cache.retrieve(cache_key)
+            modules = cached.modules
             if all([filename in modules for filename in extra_modules]) \
                     and all([int(os.path.getmtime(filename)) == mtime
                              for filename, mtime in modules.items()]):
@@ -124,14 +124,14 @@ class Source(Base):
                                    line, col, str(buf.name)))
             while wait and time.time() - n < 1:
                 self.process_result_queue()
-                cached = self.cache.get(cache_key)
-                if cached and cached.get('time') >= n:
+                cached = cache.retrieve(cache_key)
+                if cached and cached.time >= n:
                     break
                 time.sleep(0.05)
 
         if cached:
-            out = cached.get('completions')
+            cached.touch()
             if filters:
-                return [x for x in out if x['$type'] in filters]
-            return out
+                return [x for x in cached.completions if x['$type'] in filters]
+            return cached.completions
         return []

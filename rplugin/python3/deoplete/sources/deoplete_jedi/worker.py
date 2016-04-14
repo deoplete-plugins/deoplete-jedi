@@ -49,12 +49,13 @@ class Worker(threading.Thread):
             })
 
         cached = {
+            'cache_key': cache_key,
             'time': time.time(),
             'modules': modules,
             'completions': out,
         }
 
-        self.out_queue.put((cache_key, cached), block=False)
+        self.out_queue.put(cached, block=False)
 
     def run(self):
         try:

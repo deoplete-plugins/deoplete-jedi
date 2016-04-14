@@ -1,9 +1,73 @@
 import os
 import re
-
+import time
 import logging
+import threading
+
+_cache_lock = threading.RLock()
+_cache = {}
 
 log = logging.getLogger('deoplete.jedi.cache')
+
+
+class CacheEntry(object):
+    def __init__(self, dict):
+        self.key = dict.get('cache_key')
+        self._touched = time.time()
+        self.time = dict.get('time')
+        self.modules = dict.get('modules')
+        self.completions = dict.get('completions')
+
+    def touch(self):
+        with _cache_lock:
+            self._touched = time.time()
+
+
+def retrieve(key):
+    with _cache_lock:
+        return _cache.get(key)
+
+
+def store(key, value):
+    with _cache_lock:
+        if not isinstance(value, CacheEntry):
+            value = CacheEntry(value)
+        _cache[key] = value
+
+
+def exists(key):
+    return key in _cache
+
+
+def reaper(max_age=300):
+    """Clear the cache of old items
+
+    Module level completions are exempt from reaping.  It is assumed that
+    module level completions will have a key length of 1.
+    """
+    last = time.time()
+    while True:
+        n = time.time()
+        if n - last < 30:
+            time.sleep(0.05)
+            continue
+        last = n
+
+        with _cache_lock:
+            cl = len(_cache)
+            for cached in list(_cache.values()):
+                if len(cached.key) > 1 and n - cached._touched > max_age:
+                    _cache.pop(cached.key)
+            reaped = cl - len(_cache)
+            if reaped > 0:
+                log.debug('Removed %d of %d cache items', reaped, cl)
+
+
+def start_reaper():
+    log.debug('Starting reaper thread')
+    t = threading.Thread(target=reaper)
+    t.daemon = True
+    t.start()
 
 
 def split_module(text, default_value=None):
