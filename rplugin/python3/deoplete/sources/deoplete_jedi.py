@@ -7,7 +7,7 @@ import queue
 sys.path.insert(1, os.path.dirname(__file__))
 
 from deoplete.sources.base import Base
-from deoplete_jedi import worker
+from deoplete_jedi import worker, profiler
 from deoplete_jedi import cache
 
 
@@ -69,6 +69,7 @@ class Source(Base):
             except queue.Empty:
                 break
 
+    @profiler.profile
     def gather_candidates(self, context):
         if not self.workers_started:
             cache.start_reaper()

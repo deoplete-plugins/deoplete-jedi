@@ -1,62 +1,63 @@
-class Colors(object):
-    RED = '\033[1;41m'
-    GREEN = '\033[1;42m'
-    YELLOW = '\033[1;43m'
-    BLUE = '\033[1;44m'
-    MAGENTA = '\033[1;45m'
-    CYAN = '\033[1;46m'
-    ENDC = '\033[0m'
+import queue
+import functools
 
+try:
+    import statistics
+    stdev = statistics.stdev
+    mean = statistics.mean
+except ImportError:
+    stdev = None
 
-def timeit(logger, fmt, threshold):
-    from json import dumps
+    def mean(l):
+        return sum(l) / len(l)
+
+try:
     import time
+    clock = time.perf_counter
+except:
+    import timeit
+    clock = timeit.default_timer
 
-    def is_json(json_data):
-        try:
-            json_object = dumps(json_data, indent=4)
-        except ValueError:
-            return False
+
+class tfloat(float):
+    color = 39
+
+    def __str__(self):
+        n = self * 1000
+        return '\x1b[%dm%f\x1b[mms' % (self.color, n)
+
+
+def profile(func):
+    name = func.__name__
+    samples = queue.deque(maxlen=5)
+
+    @functools.wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if not self.debug_enabled:
+            return func(self, *args, **kwargs)
+        start = clock()
+        ret = func(self, *args, **kwargs)
+        n = tfloat(clock() - start)
+
+        if len(samples) < 2:
+            m = 0
+            d = 0
+            n.color = 36
         else:
-            return json_object
+            m = mean(samples)
+            if stdev:
+                d = tfloat(stdev(samples))
+            else:
+                d = 0
 
-    def timereald(method):
-        def timed(*args, **kw):
-            start = time.clock()
-            result = method(*args, **kw)
-            end = time.clock()
-
-            try:
-                obj, value = args
-                data = is_json(value) if False else value
-            except Exception:
-                data = is_json(args) if False else args
-
-            sec = (end - start)
-            sec_color = Colors.RED
-            if sec <= threshold[0]:
-                sec_color = Colors.BLUE
-            elif sec <= threshold[1]:
-                sec_color = Colors.GREEN
-
-            if fmt == 'simple':
-                logger.debug("\nName: %r\nClock: %s%2.8f%s sec\n" %
-                             (method.__name__,
-                              sec_color,
-                              sec,
-                              Colors.ENDC,
-                              ))
-            elif fmt == 'verbose':
-                logger.debug(
-                    "\nName: %r\nClock: %s%2.8f%s sec\nObj: %s\nkw: %s\n%s\n" %
-                    (method.__name__,
-                     sec_color,
-                     sec,
-                     Colors.ENDC,
-                     obj,
-                     kw,
-                     data,
-                     ))
-            return result
-        return timed
-    return timereald
+            if n <= m + d:
+                n.color = 32
+            elif n > m + d * 2:
+                n.color = 31
+            else:
+                n.color = 33
+        samples.append(n)
+        self.info('\x1b[34m%s\x1b[m t = %s, \u00b5 = %s, \u03c3 = %s)',
+                  name, n, m, d)
+        return ret
+    return wrapper
