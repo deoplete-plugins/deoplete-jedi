@@ -26,27 +26,29 @@ class Worker(threading.Thread):
         super(Worker, self).__init__()
         self.log = logging.getLogger('deoplete.jedi.%s' % self.name)
 
-    def completion_work(self, cache_key, extra_modules, source,
-                        line, col, filename):
+    def completion_work(self, cache_key, extra_modules, source, line, col,
+                        filename):
         completions = self._client.completions(cache_key, source, line, col,
                                                filename)
-        out = []
+        out = None
         modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
-        for c in completions:
-            module_path, name, type_, desc, abbr, kind = c
-            if module_path and module_path not in modules \
-                    and os.path.exists(module_path):
-                modules[module_path] = int(os.path.getmtime(module_path))
+        if completions is not None:
+            out = []
+            for c in completions:
+                module_path, name, type_, desc, abbr, kind = c
+                if module_path and module_path not in modules \
+                        and os.path.exists(module_path):
+                    modules[module_path] = int(os.path.getmtime(module_path))
 
-            out.append({
-                '$type': type_,
-                'word': name,
-                'abbr': abbr,
-                'kind': kind,
-                'info': desc,
-                'menu': '[jedi] ',
-                'dup': 1,
-            })
+                out.append({
+                    '$type': type_,
+                    'word': name,
+                    'abbr': abbr,
+                    'kind': kind,
+                    'info': desc,
+                    'menu': '[jedi] ',
+                    'dup': 1,
+                })
 
         cached = {
             'cache_key': cache_key,
@@ -58,18 +60,18 @@ class Worker(threading.Thread):
         self.out_queue.put(cached, block=False)
 
     def run(self):
-        try:
-            while not self.stop.is_set():
-                try:
-                    work = self.in_queue.get(block=False, timeout=0.5)
-                    self.log.debug('Got work')
-                    self.completion_work(*work)
-                    self.log.debug('Completed work')
-                except queue.Empty:
-                    # Sleep is mandatory to avoid pegging the CPU
-                    time.sleep(0.01)
-        except Exception:
-            self.log.error('Worker error', exc_info=True)
+        while not self.stop.is_set():
+            try:
+                work = self.in_queue.get(block=False, timeout=0.5)
+                self.log.debug('Got work')
+                self.completion_work(*work)
+                self.log.debug('Completed work')
+            except queue.Empty:
+                # Sleep is mandatory to avoid pegging the CPU
+                time.sleep(0.01)
+            except Exception:
+                self.log.debug('Worker error', exc_info=True)
+                time.sleep(0.05)
 
 
 def start(count, desc_len=0, short_types=False, show_docstring=False,

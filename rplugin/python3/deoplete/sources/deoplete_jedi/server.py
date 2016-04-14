@@ -11,11 +11,13 @@ should make deoplete-jedi's completions pretty fast and responsive.
 from __future__ import unicode_literals
 
 import os
+import re
 import sys
 import struct
+import logging
 import argparse
 import subprocess
-import logging
+from glob import glob
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler)
@@ -72,7 +74,7 @@ def stream_read(pipe):
     """Read data from the pipe."""
     buffer = getattr(pipe, 'buffer', pipe)
     header = buffer.read(4)
-    if not header:
+    if not len(header):
         raise StreamEmpty
 
     if len(header) < 4:
@@ -94,6 +96,16 @@ def stream_write(pipe, obj):
     pipe.flush()
 
 
+def strip_decor(source):
+    """Remove decorators lines
+
+    If the decorator is a function call, this will leave them dangling.  Jedi
+    should be fine with this since they'll look like tuples just hanging out
+    not doing anything important.
+    """
+    return re.sub(r'^(\s*)@\w+', r'\1', source, flags=re.M)
+
+
 class Server(object):
     """Server class
 
@@ -108,14 +120,54 @@ class Server(object):
         while True:
             data = stream_read(sys.stdin)
             if not isinstance(data, tuple):
-                break
+                continue
 
             cache_key, source, line, col, filename = data
+            orig_path = sys.path[:]
+            add_path = self.find_extra_sys_path(filename)
+            if add_path and add_path not in sys.path:
+                # Add the found path to sys.path.  I'm not 100% certain if this
+                # is actually helping anything, but it feels like the right
+                # thing to do.
+                sys.path.insert(0, add_path)
+
+            # Decorators on incomplete functions cause an error to be raised by
+            # Jedi.  I assume this is because Jedi is attempting to evaluate
+            # the return value of the wrapped, but broken, function.
+            # Our solution is to simply strip decorators from the source since
+            # we are a completion service, not the syntax police.
+            out = None
             if cache_key[-1] == 'vars':
-                # Parent string is second to last
-                self.scoped_completions(source, filename, cache_key[-2])
-            else:
-                self.script_completion(source, line, col, filename)
+                # Attempt scope completion.  If it fails, it should fall
+                # through to script completion.
+                try:
+                    # Parent string is second to last
+                    out = self.scoped_completions(source, filename, cache_key[-2])
+                except Exception:
+                    log.debug('Scope completion failed')
+                    if '@' in source:
+                        try:
+                            out = self.scoped_completions(strip_decor(source),
+                                                          filename, cache_key[-2])
+                        except Exception:
+                            log.debug('Second scope completion failed')
+
+            if not out:
+                try:
+                    out = self.script_completion(source, line, col, filename)
+                except Exception:
+                    log.debug('Script completion failed')
+                    if '@' in source:
+                        try:
+                            out = self.script_completion(strip_decor(source),
+                                                         line, col, filename)
+                        except Exception:
+                            log.debug('Second script completion failed')
+
+            stream_write(sys.stdout, out)
+
+            if len(orig_path) != len(sys.path):
+                sys.path[:] = orig_path
 
     def run(self):
         log.debug(sys.path)
@@ -125,6 +177,29 @@ class Server(object):
             log.debug('Input closed')
         except Exception:
             log.exception('exception')
+
+    def find_extra_sys_path(self, filename):
+        """Find the file's "root"
+
+        This tries to determine the script's root package.  The first step is
+        to scan upward until there are no longer __init__.py files.  If that
+        fails, check immediate subdirectories to find __init__.py files which
+        could mean that the current script is not part of a package, but has
+        sub-modules.
+        """
+        add_path = ''
+        dirname = os.path.dirname(filename)
+        scan_dir = dirname
+        while len(scan_dir) \
+                and os.path.isfile(os.path.join(scan_dir, '__init__.py')):
+            scan_dir = os.path.dirname(scan_dir)
+
+        if scan_dir != dirname:
+            add_path = scan_dir
+        elif glob('{}/*/__init__.py'.format(dirname)):
+            add_path = dirname
+
+        return add_path
 
     def script_completion(self, source, line, col, filename):
         """Standard Jedi completions
@@ -139,7 +214,7 @@ class Server(object):
             kind = type_ if not self.use_short_types \
                 else _types.get(type_) or type_
             out.append((c.module_path, name, type_, desc, abbr, kind))
-        stream_write(sys.stdout, out)
+        return out
 
     def get_parents(self, c):
         """Collect parent blocks
@@ -183,7 +258,7 @@ class Server(object):
             kind = type_ if not self.use_short_types \
                 else _types.get(type_) or type_
             out.append((c.module_path, name, type_, desc, abbr, kind))
-        stream_write(sys.stdout, out)
+        return out
 
     def call_signature(self, comp):
         """Construct the function's call signature.

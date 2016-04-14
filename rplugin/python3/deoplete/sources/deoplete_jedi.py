@@ -134,6 +134,9 @@ class Source(Base):
 
         if cached:
             cached.touch()
+            if cached.completions is None:
+                return []
+
             if filters:
                 return [x for x in cached.completions if x['$type'] in filters]
             return cached.completions
