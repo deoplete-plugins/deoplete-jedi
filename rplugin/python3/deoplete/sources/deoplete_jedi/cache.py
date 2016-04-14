@@ -194,7 +194,7 @@ def cache_context(filename, context, source):
                 # ensure the cache invalidates when the file is saved.
                 parents = get_parents(source, line)
                 parents.insert(0, cur_module)
-                cache_key = (filename_hash, tuple(parents), obj)
+                cache_key = (filename_hash, tuple(parents), obj, 'dot')
                 if os.path.exists(filename):
                     extra_modules.append(filename)
         elif context.get('complete_str'):

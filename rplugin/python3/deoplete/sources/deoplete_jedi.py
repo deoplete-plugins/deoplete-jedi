@@ -155,7 +155,11 @@ class Source(Base):
             if cached.completions is None:
                 return list(self.mix_boilerplate([]))
 
-            out = self.mix_boilerplate(cached.completions[:])
+            if cache_key[-1] == 'vars':
+                out = self.mix_boilerplate(cached.completions)
+            else:
+                out = cached.completions
+
             if filters:
                 return [x for x in out if x['$type'] in filters]
             return list(out)
