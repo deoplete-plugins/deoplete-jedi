@@ -127,7 +127,7 @@ def full_module(source, obj):
     """
 
     module = ''
-    obj_pat = r'\b{0}\b'.format(obj)
+    obj_pat = r'\b{0}\b'.format(re.escape(obj))
     for match in _import_re.finditer('\n'.join(source)):
         module = ''
         imp_line = ' '.join(match.group(0).split())
