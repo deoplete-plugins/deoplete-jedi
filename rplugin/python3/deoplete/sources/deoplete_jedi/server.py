@@ -138,6 +138,9 @@ class Server(object):
         self.use_short_types = short_types
         self.show_docstring = show_docstring
 
+        from jedi import settings
+        settings.use_filesystem_cache = False
+
     def _loop(self):
         while True:
             data = stream_read(sys.stdin)
