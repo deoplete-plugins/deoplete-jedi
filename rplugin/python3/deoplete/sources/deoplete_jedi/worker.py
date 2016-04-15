@@ -9,7 +9,6 @@ from .server import Client
 
 log = logging.getLogger('deoplete.jedi')
 workers = []
-stop_event = threading.Event()
 work_queue = queue.Queue()
 comp_queue = queue.Queue()
 
@@ -17,10 +16,9 @@ comp_queue = queue.Queue()
 class Worker(threading.Thread):
     daemon = True
 
-    def __init__(self, stop, in_queue, out_queue, desc_len=0,
+    def __init__(self, in_queue, out_queue, desc_len=0,
                  short_types=False, show_docstring=False, debug=False):
         self._client = Client(desc_len, short_types, show_docstring, debug)
-        self.stop = stop
         self.in_queue = in_queue
         self.out_queue = out_queue
         super(Worker, self).__init__()
@@ -102,7 +100,7 @@ class Worker(threading.Thread):
         return cached
 
     def run(self):
-        while not self.stop.is_set():
+        while True:
             try:
                 work = self.in_queue.get(block=False, timeout=0.5)
                 self.log.debug('Got work')
@@ -119,7 +117,7 @@ class Worker(threading.Thread):
 def start(count, desc_len=0, short_types=False, show_docstring=False,
           debug=False):
     while count:
-        t = Worker(stop_event, work_queue, comp_queue, desc_len, short_types,
+        t = Worker(work_queue, comp_queue, desc_len, short_types,
                    show_docstring, debug)
         workers.append(t)
         t.start()
