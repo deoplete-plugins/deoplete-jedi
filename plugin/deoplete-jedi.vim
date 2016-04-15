@@ -22,4 +22,4 @@ let g:deoplete#sources#jedi#show_docstring =
 " Only one worker is really needed since deoplete-jedi has a pretty aggressive
 " cache.  Two workers may be needed if working with very large source files.
 let g:deoplete#sources#jedi#worker_threads =
-      \ get(g:, 'deoplete#sources#jedi#worker_threads', 1)
+      \ get(g:, 'deoplete#sources#jedi#worker_threads', 2)

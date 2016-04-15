@@ -1,17 +1,14 @@
 import os
 import re
 import sys
+import json
 import time
 import queue
 
 sys.path.insert(1, os.path.dirname(__file__))
 
+from deoplete_jedi import cache, worker, profiler
 from deoplete.sources.base import Base
-from deoplete_jedi import worker, profiler
-from deoplete_jedi import cache
-
-
-_block_re = re.compile(r'^\s*(def|class)\s')
 
 
 class Source(Base):
@@ -54,11 +51,6 @@ class Source(Base):
         return m.start() if m else -1
 
     def mix_boilerplate(self, completions):
-        if not self.boilerplate:
-            boilerplate = cache.retrieve(('boilerplate~',))
-            if boilerplate:
-                self.boilerplate[:] = boilerplate.completions
-
         seen = set()
         for item in sorted(self.boilerplate + completions, key=lambda x: x['word'].lower()):
             if item['word'] in seen:
@@ -92,9 +84,13 @@ class Source(Base):
             self.workers_started = True
 
         if not self.boilerplate:
-            # This should be the first time any completion happened, so `wait`
-            # will be True.
-            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
+            bp = cache.retrieve(('boilerplate~',))
+            if bp:
+                self.boilerplate = bp.completions[:]
+            else:
+                # This should be the first time any completion happened, so
+                # `wait` will be True.
+                worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
 
         self.process_result_queue()
 
@@ -118,10 +114,8 @@ class Source(Base):
             filters.append('module')
 
         cache_key, extra_modules = cache.cache_context(buf.name, context, src)
-
-        if cache_key and cache.exists(cache_key):
-            # XXX: Hash cache keys to reduce length?
-            cached = cache.retrieve(cache_key)
+        cached = cache.retrieve(cache_key)
+        if cached:
             modules = cached.modules
             if all([filename in modules for filename in extra_modules]) \
                     and all([int(os.path.getmtime(filename)) == mtime

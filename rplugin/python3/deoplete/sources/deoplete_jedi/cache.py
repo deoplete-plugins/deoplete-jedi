@@ -1,9 +1,18 @@
 import os
 import re
+import glob
+import json
 import time
-import logging
 import hashlib
+import logging
 import threading
+import subprocess
+
+_paths = []
+_cache_path = None
+# List of items in the file system cache. `import~` is a special key for
+# caching import modules. It should not be cached to disk.
+_file_cache = set(['import~'])
 
 _cache_lock = threading.RLock()
 _cache = {}
@@ -23,7 +32,7 @@ _import_re = re.compile(r'''
 
 class CacheEntry(object):
     def __init__(self, dict):
-        self.key = dict.get('cache_key')
+        self.key = tuple(dict.get('cache_key'))
         self._touched = time.time()
         self.time = dict.get('time')
         self.modules = dict.get('modules')
@@ -33,9 +42,48 @@ class CacheEntry(object):
         with _cache_lock:
             self._touched = time.time()
 
+    def to_dict(self):
+        return {
+            'cache_key': self.key,
+            'time': self.time,
+            'modules': self.modules,
+            'completions': self.completions,
+        }
+
+
+def get_cache_path():
+    global _cache_path
+    if not _cache_path or not os.path.isdir(_cache_path):
+        p = subprocess.Popen(['python', '-V'], stdout=subprocess.PIPE)
+        stdout, _ = p.communicate()
+        version = re.search(r'(\d+\.\d+)\.', stdout.decode('utf8')).group(1)
+        cache_dir = os.getenv('XDG_CACHE_HOME', '~/.cache')
+        cache_dir = os.path.join(os.path.expanduser(cache_dir), 'deoplete/jedi',
+                                 version)
+        if not os.path.exists(cache_dir):
+            umask = os.umask(0)
+            os.makedirs(cache_dir, 0o0700)
+            os.umask(umask)
+        _cache_path = cache_dir
+    return _cache_path
+
 
 def retrieve(key):
     with _cache_lock:
+        if len(key) == 1 and key[0] not in _file_cache:
+            # This will only load the cached item from a file the first time it
+            # was seen.
+            _file_cache.add(key[0])
+            cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
+            with open(cache_file, 'rt') as fp:
+                try:
+                    cached = CacheEntry(json.load(fp))
+                    cached.time = time.time()
+                    _cache[key] = cached
+                    log.debug('Loaded from file: %r', key)
+                    return cached
+                except Exception:
+                    pass
         return _cache.get(key)
 
 
@@ -44,6 +92,14 @@ def store(key, value):
         if not isinstance(value, CacheEntry):
             value = CacheEntry(value)
         _cache[key] = value
+
+        if len(key) == 1 and key[0] not in _file_cache:
+            _file_cache.add(key[0])
+            cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
+            with open(cache_file, 'wt') as fp:
+                json.dump(value.to_dict(), fp)
+                log.debug('Stored to file: %r', key)
+        return value
 
 
 def exists(key):
@@ -126,6 +182,8 @@ def full_module(source, obj):
     On `from` import lines, the parent module is prepended to `obj`.
     """
 
+    # TODO: os.path.whatever(xxxxx  <- should complete for xxxxx not module
+    # TODO: need to break down. e.g. `os.path.` won't match with `import os`
     module = ''
     obj_pat = r'\b{0}\b'.format(re.escape(obj))
     for match in _import_re.finditer('\n'.join(source)):
@@ -138,6 +196,30 @@ def full_module(source, obj):
                 return '.'.join((module, obj))
             return obj
     return None
+
+
+def is_package(module, refresh=False):
+    """Test if a module path is an installed package
+
+    The current interpreter's sys.path is retrieved on first run.
+    """
+    if re.search(r'[^\w\.]', module):
+        return False
+
+    global _paths
+    if not _paths or refresh:
+        p = subprocess.Popen([
+            'python',
+            '-c', r'import sys; print("\n".join(sys.path))',
+        ], stdout=subprocess.PIPE)
+        stdout, _ = p.communicate()
+        _paths = [x for x in stdout.decode('utf8').split('\n')
+                  if x and os.path.isdir(x)]
+
+    module = module.split('.', 1)[0]
+    pglobs = [os.path.join(x, module, '__init__.py') for x in _paths]
+    pglobs.extend([os.path.join(x, '{}.*'.format(module)) for x in _paths])
+    return any(map(glob.glob, pglobs))
 
 
 def cache_context(filename, context, source):
@@ -208,7 +290,8 @@ def cache_context(filename, context, source):
                 cache_key = (filename_hash, tuple(parents), obj)
             else:
                 module_path = full_module(source, obj)
-                if module_path and not module_path.startswith('.'):
+                if module_path and not module_path.startswith('.') \
+                        and is_package(module_path):
                     cache_key = (module_path,)
                 else:
                     # A quick scan revealed that the dot completion doesn't
