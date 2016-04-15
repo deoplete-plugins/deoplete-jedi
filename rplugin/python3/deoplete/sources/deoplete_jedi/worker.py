@@ -27,7 +27,7 @@ class Worker(threading.Thread):
         cache_dir = os.getenv('XDG_CACHE_HOME', '~/.cache')
         cache_version = '.'.join(str(x) for x in self._client.version[:2])
         self.cache_dir = os.path.join(os.path.expanduser(cache_dir),
-                                      'deoplete-jedi', cache_version)
+                                      'deoplete/jedi', cache_version)
         if not os.path.exists(self.cache_dir):
             umask = os.umask(0)
             os.makedirs(self.cache_dir, 0o0700)
