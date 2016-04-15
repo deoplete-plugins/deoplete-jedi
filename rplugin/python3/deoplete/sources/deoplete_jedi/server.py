@@ -175,6 +175,7 @@ class Server(object):
     def run(self):
         log.debug(sys.path)
         try:
+            stream_write(sys.stdout, tuple(sys.version_info))
             self._loop()
         except StreamEmpty:
             log.debug('Input closed')
@@ -380,6 +381,7 @@ class Client(object):
                  debug=False):
         self._server = None
         self._count = 0
+        self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({
             'PYTHONPATH': jedi_path,
@@ -412,6 +414,7 @@ class Client(object):
         self.shutdown()
         self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, env=self.env)
+        self.version = stream_read(self._server.stdout)
 
     def completions(self, *args):
         """Get completions from the server.

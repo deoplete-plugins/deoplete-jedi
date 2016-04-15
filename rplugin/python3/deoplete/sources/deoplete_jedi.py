@@ -129,10 +129,11 @@ class Source(Base):
                 # The cache is still valid
                 refresh = False
 
-        if cache_key and (cache_key[-1] == 'vars' or
+        if cache_key and (cache_key[-1] in ('vars', 'import~') or
                           (cached and len(cache_key) == 1 and
                            not len(cached.modules))):
-            # Always refresh scoped variables
+            # Always refresh scoped variables and module imports.  Additionally
+            # refresh cached items that did not have associated module files.
             refresh = True
 
         if cached is None:
@@ -143,12 +144,12 @@ class Source(Base):
             n = time.time()
             worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
                                    line, col, str(buf.name)))
-            while wait and time.time() - n < 1:
+            while wait and time.time() - n < 2:
                 self.process_result_queue()
                 cached = cache.retrieve(cache_key)
                 if cached and cached.time >= n:
                     break
-                time.sleep(0.05)
+                time.sleep(0.01)
 
         if cached:
             cached.touch()

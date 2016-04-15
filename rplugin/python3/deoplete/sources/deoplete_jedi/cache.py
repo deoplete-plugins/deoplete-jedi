@@ -10,6 +10,16 @@ _cache = {}
 
 log = logging.getLogger('deoplete.jedi.cache')
 
+# This uses [\ \t] to avoid spanning lines
+_import_re = re.compile(r'''
+    ^[\ \t]*(
+        from[\ \t]+[\w\.]+[\ \t]+import\s+\([\s\w,]+\)|
+        from[\ \t]+[\w\.]+[\ \t]+import[\ \t\w,]+|
+        import[\ \t]+\([\s\w,]+\)|
+        import[\ \t]+[\ \t\w,]+
+    )
+''', re.VERBOSE | re.MULTILINE)
+
 
 class CacheEntry(object):
     def __init__(self, dict):
@@ -108,18 +118,26 @@ def get_parents(source, line, class_only=False):
     return parents
 
 
-def is_import(source, obj):
-    """Test if the obj is an import.
+def full_module(source, obj):
+    """Construct the full module path
 
-    Very simple testing and may not have a 100% success in all cases.
+    This finds all imports and attempts to reconstruct the full module path.
+    If matched on a standard `import` line, `obj` itself is a full module path.
+    On `from` import lines, the parent module is prepended to `obj`.
     """
-    pattern = (r'^\s*(?:from\s+[\w\._]+\s+)?import(?:[\w,\s\(]*)?({0})'
-               r'(?:[,\s\)]*)?.*(?!import|from)').format(re.escape(obj))
-    m = re.search(pattern, '\n'.join(source), re.S | re.M)
-    if m:
-        log.debug('import match: %r', m.group(1))
-        return True
-    return False
+
+    module = ''
+    obj_pat = r'\b{0}\b'.format(obj)
+    for match in _import_re.finditer('\n'.join(source)):
+        module = ''
+        imp_line = ' '.join(match.group(0).split())
+        if imp_line.startswith('from '):
+            _, module, imp_line = imp_line.split(' ', 2)
+        if re.search(obj_pat, imp_line):
+            if module:
+                return '.'.join((module, obj))
+            return obj
+    return None
 
 
 def cache_context(filename, context, source):
@@ -188,15 +206,20 @@ def cache_context(filename, context, source):
                 parents = get_parents(source, line, class_only=True)
                 parents.insert(0, cur_module)
                 cache_key = (filename_hash, tuple(parents), obj)
-            elif not is_import(source, obj):
-                # A quick scan revealed that the dot completion doesn't involve
-                # an imported module.  Treat it like a scoped variable and
-                # ensure the cache invalidates when the file is saved.
-                parents = get_parents(source, line)
-                parents.insert(0, cur_module)
-                cache_key = (filename_hash, tuple(parents), obj, 'dot')
-                if os.path.exists(filename):
-                    extra_modules.append(filename)
+            else:
+                module_path = full_module(source, obj)
+                if module_path and not module_path.startswith('.'):
+                    cache_key = (module_path,)
+                else:
+                    # A quick scan revealed that the dot completion doesn't
+                    # involve an imported module.  Treat it like a scoped
+                    # variable and ensure the cache invalidates when the file
+                    # is saved.
+                    parents = get_parents(source, line)
+                    parents.insert(0, cur_module)
+                    cache_key = (filename_hash, tuple(parents), obj, 'dot')
+                    if os.path.exists(filename):
+                        extra_modules.append(filename)
         elif context.get('complete_str'):
             parents = get_parents(source, line)
             parents.insert(0, cur_module)
