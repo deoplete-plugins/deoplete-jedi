@@ -284,9 +284,11 @@ def cache_context(filename, context, source):
 
     Cache keys are made using tuples to make them easier to interpret later.
     """
+    deoplete_input = context['input'].lstrip()
+    if not re.sub(r'[\s\d\.]+', '', deoplete_input):
+        return None, []
     filename_hash = hashlib.md5(filename.encode('utf8')).hexdigest()
     line = context['position'][1]
-    deoplete_input = context['input'].lstrip()
     log.debug('Input: "%s"', deoplete_input)
     cache_key = None
     extra_modules = []

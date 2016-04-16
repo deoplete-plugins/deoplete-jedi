@@ -25,7 +25,7 @@ class Source(Base):
         self.mark = '[jedi]'
         self.rank = 500
         self.filetypes = ['python']
-        self.input_pattern = (r'[^. \t0-9]\.\w*$|'
+        self.input_pattern = (r'\w+\.\w*$|'
                               r'^\s*@\w*$|'
                               r'^\s*from\s.+import \w*|'
                               r'^\s*from \w*|'
