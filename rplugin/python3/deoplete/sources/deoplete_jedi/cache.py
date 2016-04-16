@@ -224,15 +224,21 @@ def full_module(source, obj):
     On `from` import lines, the parent module is prepended to `obj`.
     """
 
-    # TODO: need to break down. e.g. `os.path.` won't match with `import os`
     module = ''
-    obj_pat = r'\b{0}\b'.format(re.escape(obj))
+    obj_pat = r'(?:(\S+)\s+as\s+)?\b{0}\b'.format(re.escape(obj.split('.', 1)[0]))
     for match in _import_re.finditer('\n'.join(source)):
         module = ''
         imp_line = ' '.join(match.group(0).split())
         if imp_line.startswith('from '):
             _, module, imp_line = imp_line.split(' ', 2)
-        if re.search(obj_pat, imp_line):
+        m = re.search(obj_pat, imp_line)
+        if m:
+            # If the import is aliased, use the alias as part of the key
+            alias = m.group(1)
+            if alias:
+                obj = obj.split('.')
+                obj[0] = alias
+                obj = '.'.join(obj)
             if module:
                 return '.'.join((module, obj))
             return obj
@@ -293,16 +299,16 @@ def cache_context(filename, context, source):
 
         # The trailing whitespace is significant for caching imports.
         deoplete_input = context['input'].lstrip()
-        m = re.search(r'(?:import|from)\s+(\S+)\s*(.*)', deoplete_input)
+        m = re.search(r'^(?:import|from)\s+(\S+)\s*(.*)', deoplete_input)
         if m:
             obj = re.split(r'[,\s]+', m.group(1))[-1]
             remainder = m.group(2).strip()
             if remainder.startswith('import '):
-                m = re.search('import\s+(\S+)', remainder)
-                if m:
-                    remainder = re.split(r'[,\s]+', m.group(1))[-1]
-                    obj = '.'.join((obj, remainder))
-            log.debug('prefix %r, remainder: %r', obj, remainder)
+                remainder = remainder[7:].split(',')[-1].strip().split()
+                if not remainder or len(remainder) > 1:
+                    return None, []
+                if remainder:
+                    obj = split_module('.'.join((obj, remainder[0])))
 
             if obj:
                 log.debug('obj: %s', obj)
