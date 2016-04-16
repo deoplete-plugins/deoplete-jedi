@@ -55,6 +55,7 @@ class Source(Base):
         for item in sorted(self.boilerplate + completions, key=lambda x: x['word'].lower()):
             if item['word'] in seen:
                 continue
+            seen.add(item['word'])
             yield item
 
     def process_result_queue(self):
