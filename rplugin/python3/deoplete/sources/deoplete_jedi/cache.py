@@ -69,21 +69,25 @@ def get_cache_path():
 
 
 def retrieve(key):
+    if not key:
+        return None
+
     with _cache_lock:
         if len(key) == 1 and key[0] not in _file_cache:
             # This will only load the cached item from a file the first time it
             # was seen.
-            _file_cache.add(key[0])
             cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
-            with open(cache_file, 'rt') as fp:
-                try:
-                    cached = CacheEntry(json.load(fp))
-                    cached.time = time.time()
-                    _cache[key] = cached
-                    log.debug('Loaded from file: %r', key)
-                    return cached
-                except Exception:
-                    pass
+            if os.path.isfile(cache_file):
+                _file_cache.add(key[0])
+                with open(cache_file, 'rt') as fp:
+                    try:
+                        cached = CacheEntry(json.load(fp))
+                        cached.time = time.time()
+                        _cache[key] = cached
+                        log.debug('Loaded from file: %r', key)
+                        return cached
+                    except Exception:
+                        pass
         return _cache.get(key)
 
 
@@ -240,44 +244,45 @@ def cache_context(filename, context, source):
     filename_hash = hashlib.md5(filename.encode('utf8')).hexdigest()
     line = context['position'][1]
     deoplete_input = context['input'].lstrip()
+    log.debug('Input: "%s"', deoplete_input)
     cache_key = None
     extra_modules = []
+    cur_module = os.path.splitext(os.path.basename(filename))[0]
 
     if deoplete_input.startswith(('import ', 'from ')):
         # Cache imports with buffer filename as the key prefix.
         # For `from` imports, the first part of the statement is
         # considered to be the same as `import` for caching.
-        suffix = 'import'
 
         # The trailing whitespace is significant for caching imports.
         deoplete_input = context['input'].lstrip()
+        m = re.search(r'(?:import|from)\s+(\S+)\s*(.*)', deoplete_input)
+        if m:
+            obj = re.split(r'[,\s]+', m.group(1))[-1]
+            remainder = m.group(2).strip()
+            if remainder.startswith('import '):
+                m = re.search('import\s+(\S+)', remainder)
+                if m:
+                    remainder = re.split(r'[,\s]+', m.group(1))[-1]
+                    obj = '.'.join((obj, remainder))
+            log.debug('prefix %r, remainder: %r', obj, remainder)
 
-        if deoplete_input.startswith('import'):
-            m = re.search(r'^import\s+(\S+)$', deoplete_input)
-            if not m:
-                # There shouldn't be an object that is named 'import', but add
-                # ~ at the end to prevent `import.` from showing completions.
-                cache_key = ('import~',)
-        else:
-            m = re.search(r'^from\s+(\S+)\s+import\s+', deoplete_input)
-            if m:
-                # Treat the first part of the import as a cached
-                # module, but cache it per-buffer.
-                cache_key = (filename_hash, 'from', m.group(1))
-            else:
-                m = re.search(r'^from\s+(\S+)$', deoplete_input)
+            if obj:
+                log.debug('obj: %s', obj)
+                if obj and not obj.startswith('.') and is_package(obj):
+                    cache_key = (obj,)
+                else:
+                    parents = get_parents(source, line)
+                    parents.insert(0, cur_module)
+                    cache_key = (filename_hash, tuple(parents), obj, 'import')
+                    if os.path.exists(filename):
+                        extra_modules.append(filename)
 
-        if not cache_key and m:
-            suffix = split_module(m.group(1), suffix)
-            cache_key = (filename_hash, 'import', suffix)
-            if os.path.exists(filename):
-                extra_modules.append(filename)
+        if not cache_key:
+            cache_key = ('import~',)
 
     if not cache_key:
         obj = split_module(deoplete_input.strip())
-        cur_module = os.path.basename(filename)
-        cur_module = os.path.splitext(cur_module)[0]
-
         if obj:
             cache_key = (obj,)
             if obj.startswith('self'):

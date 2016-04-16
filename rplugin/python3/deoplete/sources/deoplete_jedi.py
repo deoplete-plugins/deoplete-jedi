@@ -70,7 +70,9 @@ class Source(Base):
                 # Ensure that the incoming completion is actually newer than
                 # the current one.
                 if cached is None or cached.time <= compl.get('time'):
-                    cache.store(cache_key, compl)
+                    cached = cache.store(cache_key, compl)
+                    if cache_key[0] == 'boilerplate~':
+                        self.boilerplate = cached.completions[:]
             except queue.Empty:
                 break
 
@@ -83,10 +85,12 @@ class Source(Base):
                          self.debug_enabled)
             self.workers_started = True
 
+        refresh_boilerplate = False
         if not self.boilerplate:
             bp = cache.retrieve(('boilerplate~',))
             if bp:
                 self.boilerplate = bp.completions[:]
+                refresh_boilerplate = True
             else:
                 # This should be the first time any completion happened, so
                 # `wait` will be True.
@@ -123,7 +127,7 @@ class Source(Base):
                 # The cache is still valid
                 refresh = False
 
-        if cache_key and (cache_key[-1] in ('vars', 'import~') or
+        if cache_key and (cache_key[-1] in ('dot', 'vars', 'import', 'import~') or
                           (cached and len(cache_key) == 1 and
                            not len(cached.modules))):
             # Always refresh scoped variables and module imports.  Additionally
@@ -145,6 +149,13 @@ class Source(Base):
                     break
                 time.sleep(0.01)
 
+        if refresh_boilerplate:
+            # This should only occur the first time completions happen.
+            # Refresh the boilerplate to ensure it's always up to date (just in
+            # case).
+            self.debug('Refreshing boilerplate')
+            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
+
         if cached:
             cached.touch()
             if cached.completions is None:
@@ -154,7 +165,6 @@ class Source(Base):
                 out = self.mix_boilerplate(cached.completions)
             else:
                 out = cached.completions
-
             if filters:
                 return [x for x in out if x['$type'] in filters]
             return list(out)
