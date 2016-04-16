@@ -141,6 +141,41 @@ def start_reaper():
     t.start()
 
 
+# balanced() taken from:
+# http://stackoverflow.com/a/6753172/4932879
+# Modified to include string delimiters
+def _balanced():
+    # Doc strings might be an issue, but we don't care.
+    idelim = iter("""(){}[]""''""")
+    delims = dict(zip(idelim, idelim))
+    closing = delims.values()
+
+    def balanced(astr):
+        stack = []
+        skip = False
+        open_str = ''
+        for c in astr:
+            if c == '\\':
+                skip = True
+                continue
+            if skip:
+                skip = False
+                continue
+            d = delims.get(c, None)
+            if d and not open_str:
+                if d in '"\'':
+                    open_str = d
+                stack.append(d)
+            elif c in closing:
+                if c == open_str:
+                    open_str = ''
+                if not open_str and (not stack or c != stack.pop()):
+                    return False
+        return not stack
+    return balanced
+balanced = _balanced()
+
+
 def split_module(text, default_value=None):
     """Utility to split the module text.
 
@@ -148,6 +183,9 @@ def split_module(text, default_value=None):
     """
     m = re.search('([\S\.]+)$', text)
     if m and '.' in m.group(1):
+        if not balanced(text):
+            # Handles cases where the cursor is inside of unclosed delimiters.
+            return default_value
         return m.group(1).rsplit('.', 1)[0]
     return default_value
 
@@ -186,7 +224,6 @@ def full_module(source, obj):
     On `from` import lines, the parent module is prepended to `obj`.
     """
 
-    # TODO: os.path.whatever(xxxxx  <- should complete for xxxxx not module
     # TODO: need to break down. e.g. `os.path.` won't match with `import os`
     module = ''
     obj_pat = r'\b{0}\b'.format(re.escape(obj))
