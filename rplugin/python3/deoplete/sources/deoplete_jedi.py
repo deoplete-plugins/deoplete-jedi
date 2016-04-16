@@ -11,6 +11,13 @@ from deoplete_jedi import cache, worker, profiler
 from deoplete.sources.base import Base
 
 
+def sort_key(item):
+    w = item.get('word')
+    l = len(w)
+    z = l - len(w.lstrip('_'))
+    return (('z' * z) + w.lower()[z:], len(w))
+
+
 class Source(Base):
 
     def __init__(self, vim):
@@ -52,7 +59,7 @@ class Source(Base):
 
     def mix_boilerplate(self, completions):
         seen = set()
-        for item in sorted(self.boilerplate + completions, key=lambda x: x['word'].lower()):
+        for item in self.boilerplate + completions:
             if item['word'] in seen:
                 continue
             seen.add(item['word'])
@@ -160,13 +167,12 @@ class Source(Base):
         if cached:
             cached.touch()
             if cached.completions is None:
-                return list(self.mix_boilerplate([]))
-
-            if cache_key[-1] == 'vars':
+                out = self.mix_boilerplate([])
+            elif cache_key[-1] == 'vars':
                 out = self.mix_boilerplate(cached.completions)
             else:
                 out = cached.completions
             if filters:
-                return [x for x in out if x['$type'] in filters]
-            return list(out)
+                out = (x for x in out if x['$type'] in filters)
+            return [x for x in sorted(out, key=sort_key)]
         return []
