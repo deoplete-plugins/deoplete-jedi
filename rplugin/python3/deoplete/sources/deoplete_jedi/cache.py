@@ -37,6 +37,16 @@ class CacheEntry(object):
         self.time = dict.get('time')
         self.modules = dict.get('modules')
         self.completions = dict.get('completions')
+        self.refresh = False
+        if self.completions is None:
+            self.refresh = True
+            self.completions = []
+
+    def update_from(self, other):
+        self.key = other.key
+        self.time = other.time
+        self.modules = other.modules
+        self.completions = other.completions
 
     def touch(self):
         with _cache_lock:
@@ -96,6 +106,14 @@ def store(key, value):
     with _cache_lock:
         if not isinstance(value, CacheEntry):
             value = CacheEntry(value)
+
+        if value.refresh:
+            # refresh is set when completions is None.  This will be due to
+            # Jedi producing an error and not getting any completions.  Use any
+            # previously cached completions while a refresh is attempted.
+            old = _cache.get(key)
+            value.completions = old.completions
+
         _cache[key] = value
 
         if len(key) == 1 and key[0] not in _file_cache:

@@ -126,7 +126,7 @@ class Source(Base):
 
         cache_key, extra_modules = cache.cache_context(buf.name, context, src)
         cached = cache.retrieve(cache_key)
-        if cached:
+        if cached and not cached.refresh:
             modules = cached.modules
             if all([filename in modules for filename in extra_modules]) \
                     and all([int(os.path.getmtime(filename)) == mtime
