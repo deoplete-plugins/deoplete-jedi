@@ -26,9 +26,8 @@ class Source(Base):
         self.filetypes = ['python']
         self.input_pattern = (r'\w+\.\w*$|'
                               r'^\s*@\w*$|'
-                              r'^\s*from\s.+import \w*|'
-                              r'^\s*from \w*|'
-                              r'^\s*import \w*')
+                              r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
+                              r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
 
         self.debug_enabled = \
             self.vim.vars['deoplete#sources#jedi#debug_enabled']
@@ -52,7 +51,12 @@ class Source(Base):
         self.boilerplate = []  # Completions that are included in all results
 
     def get_complete_position(self, context):
-        m = re.search(r'\w*$', context['input'])
+        pattern = r'\w*$'
+        if context['input'].lstrip().startswith(('from ', 'import ')):
+            m = re.search(r'[,\s]$', context['input'])
+            if m:
+                return m.end()
+        m = re.search(pattern, context['input'])
         return m.start() if m else -1
 
     def mix_boilerplate(self, completions):

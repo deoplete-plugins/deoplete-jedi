@@ -345,7 +345,8 @@ def cache_context(filename, context, source):
             import_key = re.sub(r'[^\s\w\.]', ' ', cinput.strip()).split()[-1]
 
         if import_key:
-            if '.' in import_key and import_key[-1] not in whitespace:
+            if '.' in import_key and import_key[-1] not in whitespace \
+                    and not re.search(r'^from\s+\S+\s+import', cinput):
                 # Dot completion on the import line
                 import_key, _ = import_key.rsplit('.', 1)
             cache_key = (import_key.rstrip('.'),)
