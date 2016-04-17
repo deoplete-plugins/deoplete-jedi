@@ -141,6 +141,14 @@ class Source(Base):
             # refresh cached items that did not have associated module files.
             refresh = True
 
+        if (not cached or refresh) and cache_key and len(cache_key) == 1:
+            # Make a synthetic completion for a module to guarantee the correct
+            # completions.
+            src = ['from {} import '.format(cache_key[0])]
+            self.debug('source: %r', src)
+            line = 1
+            col = len(src[0])
+
         if cached is None:
             wait = True
 
