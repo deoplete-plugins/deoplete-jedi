@@ -300,32 +300,14 @@ def cache_context(filename, context, source):
         # For `from` imports, the first part of the statement is
         # considered to be the same as `import` for caching.
 
-        # The trailing whitespace is significant for caching imports.
+        import_key = 'import~'
         deoplete_input = context['input'].lstrip()
-        m = re.search(r'^(?:import|from)\s+(\S+)\s*(.*)', deoplete_input)
+        m = re.search(r'^from\s+(\S+)', deoplete_input)
         if m:
-            obj = re.split(r'[,\s]+', m.group(1))[-1]
-            remainder = m.group(2).strip()
-            if remainder.startswith('import '):
-                remainder = remainder[7:].split(',')[-1].strip().split()
-                if not remainder or len(remainder) > 1:
-                    return None, []
-                if remainder:
-                    obj = split_module('.'.join((obj, remainder[0])))
+            import_key = m.group(1)
 
-            if obj:
-                log.debug('obj: %s', obj)
-                if obj and not obj.startswith('.') and is_package(obj):
-                    cache_key = (obj,)
-                else:
-                    parents = get_parents(source, line)
-                    parents.insert(0, cur_module)
-                    cache_key = (filename_hash, tuple(parents), obj, 'import')
-                    if os.path.exists(filename):
-                        extra_modules.append(filename)
-
-        if not cache_key:
-            cache_key = ('import~',)
+        if import_key:
+            cache_key = (import_key,)
 
     if not cache_key:
         obj = split_module(deoplete_input.strip())
