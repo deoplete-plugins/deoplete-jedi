@@ -54,9 +54,10 @@ class CacheEntry(object):
 def get_cache_path():
     global _cache_path
     if not _cache_path or not os.path.isdir(_cache_path):
-        p = subprocess.Popen(['python', '-V'], stdout=subprocess.PIPE)
-        stdout, _ = p.communicate()
-        version = re.search(r'(\d+\.\d+)\.', stdout.decode('utf8')).group(1)
+        p = subprocess.Popen(['python', '-V'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        version = re.search(r'(\d+\.\d+)\.', (stdout or stderr).decode('utf8')).group(1)
         cache_dir = os.getenv('XDG_CACHE_HOME', '~/.cache')
         cache_dir = os.path.join(os.path.expanduser(cache_dir), 'deoplete/jedi',
                                  version)
