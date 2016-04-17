@@ -8,6 +8,7 @@ import hashlib
 import logging
 import threading
 import subprocess
+from string import whitespace
 
 _paths = []
 _cache_path = None
@@ -320,36 +321,37 @@ def cache_context(filename, context, source):
 
     Cache keys are made using tuples to make them easier to interpret later.
     """
-    deoplete_input = context['input'].lstrip()
-    if not re.sub(r'[\s\d\.]+', '', deoplete_input):
+    cinput = context['input'].lstrip()
+    if not re.sub(r'[\s\d\.]+', '', cinput):
         return None, []
     filename_hash = hashlib.md5(filename.encode('utf8')).hexdigest()
     line = context['position'][1]
-    log.debug('Input: "%s"', deoplete_input)
+    log.debug('Input: "%s"', cinput)
     cache_key = None
     extra_modules = []
     cur_module = os.path.splitext(os.path.basename(filename))[0]
 
-    if deoplete_input.startswith(('import ', 'from ')):
+    if cinput.startswith(('import ', 'from ')):
         # Cache imports with buffer filename as the key prefix.
         # For `from` imports, the first part of the statement is
         # considered to be the same as `import` for caching.
 
         import_key = 'import~'
-        deoplete_input = context['input'].lstrip()
-        m = re.search(r'^from\s+(\S+)', deoplete_input)
+        cinput = context['input'].lstrip()
+        m = re.search(r'^from\s+(\S+)', cinput)
         if m:
             import_key = m.group(1) or 'import~'
-        elif deoplete_input.startswith('import ') \
-                and deoplete_input.rstrip().endswith('.'):
-            import_key = re.sub(r'[^\s\w\.]', ' ',
-                                deoplete_input.strip()).split()[-1]
+        elif cinput.startswith('import ') and cinput.rstrip().endswith('.'):
+            import_key = re.sub(r'[^\s\w\.]', ' ', cinput.strip()).split()[-1]
 
         if import_key:
+            if '.' in import_key and import_key[-1] not in whitespace:
+                # Dot completion on the import line
+                import_key, _ = import_key.rsplit('.', 1)
             cache_key = (import_key.rstrip('.'),)
 
     if not cache_key:
-        obj = split_module(deoplete_input.strip())
+        obj = split_module(cinput.strip())
         if obj:
             cache_key = (obj,)
             if obj.startswith('self'):
