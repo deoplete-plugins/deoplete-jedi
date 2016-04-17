@@ -339,10 +339,14 @@ def cache_context(filename, context, source):
         deoplete_input = context['input'].lstrip()
         m = re.search(r'^from\s+(\S+)', deoplete_input)
         if m:
-            import_key = m.group(1)
+            import_key = m.group(1) or 'import~'
+        elif deoplete_input.startswith('import ') \
+                and deoplete_input.rstrip().endswith('.'):
+            import_key = re.sub(r'[^\s\w\.]', ' ',
+                                deoplete_input.strip()).split()[-1]
 
         if import_key:
-            cache_key = (import_key,)
+            cache_key = (import_key.rstrip('.'),)
 
     if not cache_key:
         obj = split_module(deoplete_input.strip())
