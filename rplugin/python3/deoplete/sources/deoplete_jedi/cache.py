@@ -185,11 +185,17 @@ def _balanced():
     # Doc strings might be an issue, but we don't care.
     idelim = iter("""(){}[]""''""")
     delims = dict(zip(idelim, idelim))
+    odelims = {v: k for k, v in delims.items()}
     closing = delims.values()
 
     def balanced(astr):
+        """Test if a string has balanced delimiters.
+
+        Returns a boolean and a string of the opened delimiter.
+        """
         stack = []
         skip = False
+        open_d = ''
         open_str = ''
         for c in astr:
             if c == '\\':
@@ -202,13 +208,18 @@ def _balanced():
             if d and not open_str:
                 if d in '"\'':
                     open_str = d
+                open_d = odelims.get(d)
                 stack.append(d)
             elif c in closing:
                 if c == open_str:
                     open_str = ''
                 if not open_str and (not stack or c != stack.pop()):
-                    return False
-        return not stack
+                    return False, open_d
+                if stack:
+                    open_d = odelims.get(stack[-1])
+                else:
+                    open_d = ''
+        return not stack, open_d
     return balanced
 balanced = _balanced()
 
@@ -218,11 +229,19 @@ def split_module(text, default_value=None):
 
     If there is nothing to split, return `default_value`.
     """
+    b, d = balanced(text)
+    if not b:
+        # Handles cases where the cursor is inside of unclosed delimiters.
+        # If the input is: re.search(x.spl
+        # The returned value should be: x
+        if d and d not in '\'"':
+            di = text.rfind(d)
+            if di != -1:
+                text = text[di:]
+        else:
+            return default_value
     m = re.search('([\S\.]+)$', text)
     if m and '.' in m.group(1):
-        if not balanced(text):
-            # Handles cases where the cursor is inside of unclosed delimiters.
-            return default_value
         return m.group(1).rsplit('.', 1)[0]
     return default_value
 
