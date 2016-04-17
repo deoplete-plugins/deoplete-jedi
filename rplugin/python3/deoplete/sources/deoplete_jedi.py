@@ -2,7 +2,6 @@ import os
 import re
 import sys
 import time
-import queue
 
 sys.path.insert(1, os.path.dirname(__file__))
 
@@ -64,32 +63,13 @@ class Source(Base):
             seen.add(item['word'])
             yield item
 
-    def process_result_queue(self):
-        """Process completion results
-
-        This should be called before new completions begin.
-        """
-        while True:
-            try:
-                compl = worker.comp_queue.get(block=False, timeout=0.05)
-                cache_key = compl.get('cache_key')
-                cached = cache.retrieve(cache_key)
-                # Ensure that the incoming completion is actually newer than
-                # the current one.
-                if cached is None or cached.time <= compl.get('time'):
-                    cached = cache.store(cache_key, compl)
-                    if cache_key[0] == 'boilerplate~':
-                        self.boilerplate = cached.completions[:]
-            except queue.Empty:
-                break
-
     @profiler.profile
     def gather_candidates(self, context):
         if not self.workers_started:
-            cache.start_reaper()
             worker.start(max(1, self.worker_threads), self.description_length,
                          self.use_short_types, self.show_docstring,
                          self.debug_enabled)
+            cache.start_background(worker.comp_queue)
             self.workers_started = True
 
         refresh_boilerplate = False
@@ -102,8 +82,6 @@ class Source(Base):
                 # This should be the first time any completion happened, so
                 # `wait` will be True.
                 worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
-
-        self.process_result_queue()
 
         line = context['position'][1]
         col = context['complete_position']
@@ -158,7 +136,6 @@ class Source(Base):
             worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
                                    line, col, str(buf.name)))
             while wait and time.time() - n < 2:
-                self.process_result_queue()
                 cached = cache.retrieve(cache_key)
                 if cached and cached.time >= n:
                     break
@@ -172,7 +149,6 @@ class Source(Base):
             worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
 
         if cached:
-            cached.touch()
             if cached.completions is None:
                 out = self.mix_boilerplate([])
             elif cache_key[-1] == 'vars':

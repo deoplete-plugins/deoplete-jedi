@@ -3,6 +3,7 @@ import re
 import glob
 import json
 import time
+import queue
 import hashlib
 import logging
 import threading
@@ -49,8 +50,7 @@ class CacheEntry(object):
         self.completions = other.completions
 
     def touch(self):
-        with _cache_lock:
-            self._touched = time.time()
+        self._touched = time.time()
 
     def to_dict(self):
         return {
@@ -99,7 +99,10 @@ def retrieve(key):
                         return cached
                     except Exception:
                         pass
-        return _cache.get(key)
+        cached = _cache.get(key)
+        if cached:
+            cached.touch()
+        return cached
 
 
 def store(key, value):
@@ -126,36 +129,50 @@ def store(key, value):
 
 
 def exists(key):
-    return key in _cache
+    with _cache_lock:
+        return key in _cache
 
 
-def reaper(max_age=300):
+def reap_cache(max_age=300):
     """Clear the cache of old items
 
     Module level completions are exempt from reaping.  It is assumed that
     module level completions will have a key length of 1.
     """
-    last = time.time()
+    with _cache_lock:
+        now = time.time()
+        cur_len = len(_cache)
+        for cached in list(_cache.values()):
+            if len(cached.key) > 1 and now - cached._touched > max_age:
+                _cache.pop(cached.key)
+        return len(_cache), cur_len
+
+
+def cache_processor_thread(compl_queue):
+    last_clear = time.time()
     while True:
-        n = time.time()
-        if n - last < 30:
-            time.sleep(0.05)
-            continue
-        last = n
-
-        with _cache_lock:
-            cl = len(_cache)
-            for cached in list(_cache.values()):
-                if len(cached.key) > 1 and n - cached._touched > max_age:
-                    _cache.pop(cached.key)
-            reaped = cl - len(_cache)
+        now = time.time()
+        if now - last_clear >= 30:
+            after, before = reap_cache()
+            reaped = before - after
             if reaped > 0:
-                log.debug('Removed %d of %d cache items', reaped, cl)
+                log.debug('Removed %d of %d cache items', reaped, before)
+            last_clear = time.time()
+
+        try:
+            compl = compl_queue.get(timeout=0.01)
+            cache_key = compl.get('cache_key')
+            cached = retrieve(cache_key)
+            if cached is None or cached.time <= compl.get('time'):
+                cached = store(cache_key, compl)
+                log.debug('Processed: %r', cache_key)
+        except queue.Empty:
+            pass
 
 
-def start_reaper():
+def start_background(compl_queue):
     log.debug('Starting reaper thread')
-    t = threading.Thread(target=reaper)
+    t = threading.Thread(target=cache_processor_thread, args=(compl_queue,))
     t.daemon = True
     t.start()
 
