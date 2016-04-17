@@ -118,13 +118,12 @@ def retry_completion(func):
             return func(self, source, *args, **kwargs)
         except Exception:
             if '@' in source:
-                log.warn('Retrying %s', func.__name__)
+                log.warn('Retrying completion %r', func.__name__)
                 try:
                     return func(self, strip_decor(source), *args, **kwargs)
                 except:
-                    log.warn('Failed %s', func.__name__)
-            else:
-                log.warn('Completion failed', exc_info=True)
+                    pass
+            log.warn('Failed completion %r', func.__name__)
     return wrapper
 
 
@@ -176,14 +175,14 @@ class Server(object):
                 sys.path[:] = orig_path
 
     def run(self):
-        log.debug(sys.path)
+        log.debug('Starting server.  sys.path = %r', sys.path)
         try:
             stream_write(sys.stdout, tuple(sys.version_info))
             self._loop()
         except StreamEmpty:
-            log.debug('Input closed')
+            log.debug('Input closed.  Shutting down.')
         except Exception:
-            log.exception('exception')
+            log.exception('Server Exception.  Shutting down.')
 
     def find_extra_sys_path(self, filename):
         """Find the file's "root"
@@ -210,8 +209,7 @@ class Server(object):
 
     @retry_completion
     def script_completion(self, source, line, col, filename):
-        """Standard Jedi completions
-        """
+        """Standard Jedi completions"""
         import jedi
         log.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
         completions = jedi.Script(source, line, col, filename).completions()
