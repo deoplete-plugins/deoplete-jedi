@@ -239,7 +239,7 @@ def split_module(text, default_value=None):
         if d and d not in '\'"':
             di = text.rfind(d)
             if di != -1:
-                text = text[di:]
+                text = text[di+1:]
         else:
             return default_value
     m = re.search('([\S\.]+)$', text)
@@ -418,7 +418,7 @@ def cache_context(filename, context, source):
                         parents = get_parents(source, line)
                         parents.insert(0, cur_module)
                         cache_key = (filename_hash, tuple(parents), obj, 'dot')
-        elif context.get('complete_str'):
+        elif context.get('complete_str') or cinput.rstrip().endswith('='):
             parents = get_parents(source, line)
             parents.insert(0, cur_module)
             cache_key = (filename_hash, tuple(parents), 'vars')

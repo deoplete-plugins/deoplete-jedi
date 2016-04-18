@@ -25,6 +25,7 @@ class Source(Base):
         self.rank = 500
         self.filetypes = ['python']
         self.input_pattern = (r'[\w\)\]\}\'\"]+\.\w*$|'
+                              r'\w+\s*=\s*\w*$|'
                               r'^\s*@\w*$|'
                               r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
                               r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
@@ -54,9 +55,40 @@ class Source(Base):
         input_line = context.get('input').strip()
         b, d = cache.balanced(input_line)
         candidates = context.get('candidates')
-        rank = ['']
-        self.debug('candidates %r', candidates)
-        return candidates
+        if not b:
+            if d and d not in '\'"':
+                di = input_line.rfind(d)
+                if di != -1:
+                    input_line = input_line[di+1:]
+
+        # Sort by type.  0 will be the default.  < 0 if it should rise
+        self.debug('Input: %r', input_line)
+        rank = {}
+        if re.search(r'\.\S*$', input_line):
+            rank.update({
+                'import': -1,
+                'module': -1,
+                'param': -3,
+                'property': -3,
+                'object': -1,
+                'class': -2,
+                'function': -2,
+                'keyword': 5,
+            })
+        elif re.search(r'=\s+\S+$', input_line):
+            rank.update({
+                'import': 2,
+                'class': 2,
+                'function': 2,
+                'keyword': 2,
+            })
+        if not rank:
+            return candidates
+
+        def sort_key(item):
+            return rank.get(item.get('$type'), 0), candidates.index(item)
+
+        return sorted(candidates, key=sort_key)
 
     def get_complete_position(self, context):
         pattern = r'\w*$'
