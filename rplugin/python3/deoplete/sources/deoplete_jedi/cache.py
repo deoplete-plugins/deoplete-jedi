@@ -10,6 +10,8 @@ import threading
 import subprocess
 from string import whitespace
 
+from deoplete_jedi import utils
+
 _paths = []
 _cache_path = None
 # List of items in the file system cache. `import~` is a special key for
@@ -85,7 +87,7 @@ def retrieve(key):
         return None
 
     with _cache_lock:
-        if len(key) == 1 and key[0] not in _file_cache:
+        if key[-1] == 'package' and key[0] not in _file_cache:
             # This will only load the cached item from a file the first time it
             # was seen.
             cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
@@ -120,7 +122,7 @@ def store(key, value):
 
         _cache[key] = value
 
-        if len(key) == 1 and key[0] not in _file_cache:
+        if key[-1] == 'package' and key[0] not in _file_cache:
             _file_cache.add(key[0])
             cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
             with open(cache_file, 'wt') as fp:
@@ -144,7 +146,7 @@ def reap_cache(max_age=300):
         now = time.time()
         cur_len = len(_cache)
         for cached in list(_cache.values()):
-            if len(cached.key) > 1 and now - cached._touched > max_age:
+            if cached.key != 'package' and now - cached._touched > max_age:
                 _cache.pop(cached.key)
         return len(_cache), cur_len
 
@@ -301,14 +303,7 @@ def full_module(source, obj):
     return None
 
 
-def is_package(module, refresh=False):
-    """Test if a module path is an installed package
-
-    The current interpreter's sys.path is retrieved on first run.
-    """
-    if re.search(r'[^\w\.]', module):
-        return False
-
+def sys_path(refresh=False):
     global _paths
     if not _paths or refresh:
         p = subprocess.Popen([
@@ -318,10 +313,22 @@ def is_package(module, refresh=False):
         stdout, _ = p.communicate()
         _paths = [x for x in stdout.decode('utf8').split('\n')
                   if x and os.path.isdir(x)]
+    return _paths
+
+
+def is_package(module, refresh=False):
+    """Test if a module path is an installed package
+
+    The current interpreter's sys.path is retrieved on first run.
+    """
+    if re.search(r'[^\w\.]', module):
+        return False
+
+    paths = sys_path(refresh)
 
     module = module.split('.', 1)[0]
-    pglobs = [os.path.join(x, module, '__init__.py') for x in _paths]
-    pglobs.extend([os.path.join(x, '{}.*'.format(module)) for x in _paths])
+    pglobs = [os.path.join(x, module, '__init__.py') for x in paths]
+    pglobs.extend([os.path.join(x, '{}.*'.format(module)) for x in paths])
     return any(map(glob.glob, pglobs))
 
 
@@ -368,12 +375,20 @@ def cache_context(filename, context, source):
                     and not re.search(r'^from\s+\S+\s+import', cinput):
                 # Dot completion on the import line
                 import_key, _ = import_key.rsplit('.', 1)
-            cache_key = (import_key.rstrip('.'),)
+            import_key = import_key.rstrip('.')
+            module_file = utils.module_search(import_key,
+                                              [os.path.dirname(filename)])
+            if module_file:
+                cache_key = (import_key, 'local')
+            elif is_package(import_key):
+                cache_key = (import_key, 'package')
+            else:
+                cache_key = import_key
 
     if not cache_key:
         obj = split_module(cinput.strip())
         if obj:
-            cache_key = (obj,)
+            cache_key = (obj, 'package')
             if obj.startswith('self'):
                 if os.path.exists(filename):
                     extra_modules.append(filename)
@@ -386,17 +401,23 @@ def cache_context(filename, context, source):
                 module_path = full_module(source, obj)
                 if module_path and not module_path.startswith('.') \
                         and is_package(module_path):
-                    cache_key = (module_path,)
+                    cache_key = (module_path, 'package')
                 else:
                     # A quick scan revealed that the dot completion doesn't
                     # involve an imported module.  Treat it like a scoped
                     # variable and ensure the cache invalidates when the file
                     # is saved.
-                    parents = get_parents(source, line)
-                    parents.insert(0, cur_module)
-                    cache_key = (filename_hash, tuple(parents), obj, 'dot')
                     if os.path.exists(filename):
                         extra_modules.append(filename)
+
+                    module_file = utils.module_search(module_path,
+                                                      [os.path.dirname(filename)])
+                    if module_file:
+                        cache_key = (module_path, 'local')
+                    else:
+                        parents = get_parents(source, line)
+                        parents.insert(0, cur_module)
+                        cache_key = (filename_hash, tuple(parents), obj, 'dot')
         elif context.get('complete_str'):
             parents = get_parents(source, line)
             parents.insert(0, cur_module)

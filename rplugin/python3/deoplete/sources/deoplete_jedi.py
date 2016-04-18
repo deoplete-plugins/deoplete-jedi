@@ -117,13 +117,13 @@ class Source(Base):
                 refresh = False
 
         if cache_key and (cache_key[-1] in ('dot', 'vars', 'import', 'import~') or
-                          (cached and len(cache_key) == 1 and
+                          (cached and cache_key[-1] == 'package' and
                            not len(cached.modules))):
             # Always refresh scoped variables and module imports.  Additionally
             # refresh cached items that did not have associated module files.
             refresh = True
 
-        if (not cached or refresh) and cache_key and len(cache_key) == 1:
+        if (not cached or refresh) and cache_key and cache_key[-1] == 'package':
             # Make a synthetic completion for a module to guarantee the correct
             # completions.
             src = ['from {} import '.format(cache_key[0])]

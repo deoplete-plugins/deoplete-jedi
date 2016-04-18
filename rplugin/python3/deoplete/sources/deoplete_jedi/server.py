@@ -20,7 +20,11 @@ import functools
 import subprocess
 from glob import glob
 
-log = logging.getLogger(__name__)
+# This is be possible because the path is inserted in deoplete_jedi.py as well
+# as set in PYTHONPATH by the Client class.
+from deoplete_jedi import utils
+
+log = logging.getLogger('server')
 log.addHandler(logging.NullHandler)
 
 try:
@@ -141,6 +145,8 @@ class Server(object):
         settings.use_filesystem_cache = False
 
     def _loop(self):
+        from jedi.evaluate.sys_path import _get_venv_sitepackages
+
         while True:
             data = stream_read(sys.stdin)
             if not isinstance(data, tuple):
@@ -148,12 +154,17 @@ class Server(object):
 
             cache_key, source, line, col, filename = data
             orig_path = sys.path[:]
+            venv = os.getenv('VIRTUAL_ENV')
+            if venv:
+                sys.path.insert(0, _get_venv_sitepackages(venv))
             add_path = self.find_extra_sys_path(filename)
             if add_path and add_path not in sys.path:
                 # Add the found path to sys.path.  I'm not 100% certain if this
                 # is actually helping anything, but it feels like the right
                 # thing to do.
                 sys.path.insert(0, add_path)
+            if filename:
+                sys.path.append(os.path.dirname(filename))
 
             # Decorators on incomplete functions cause an error to be raised by
             # Jedi.  I assume this is because Jedi is attempting to evaluate
@@ -161,6 +172,7 @@ class Server(object):
             # Our solution is to simply strip decorators from the source since
             # we are a completion service, not the syntax police.
             out = None
+
             if cache_key[-1] == 'vars':
                 # Attempt scope completion.  If it fails, it should fall
                 # through to script completion.
@@ -169,10 +181,12 @@ class Server(object):
             if not out:
                 out = self.script_completion(source, line, col, filename)
 
-            stream_write(sys.stdout, out)
+            if not out and cache_key[-1] in ('package', 'local'):
+                # The backup plan
+                out = self.module_completions(cache_key[0], sys.path)
 
-            if len(orig_path) != len(sys.path):
-                sys.path[:] = orig_path
+            stream_write(sys.stdout, out)
+            sys.path[:] = orig_path
 
     def run(self):
         log.debug('Starting server.  sys.path = %r', sys.path)
@@ -206,6 +220,56 @@ class Server(object):
             add_path = dirname
 
         return add_path
+
+    def module_completions(self, module, paths):
+        """Directly get completions from the module file
+
+        This is the fallback if all else fails for module completion.
+        """
+        found = utils.module_search(module, paths)
+        if not found:
+            return None
+
+        log.debug('Found script for fallback completions: %r', found)
+        mod_parts = tuple(re.sub(r'\.+', '.', module).strip('.').split('.'))
+        path_parts = os.path.splitext(found)[0].split('/')
+        if path_parts[-1] == '__init__':
+            path_parts.pop()
+        path_parts = tuple(path_parts)
+        match_mod = mod_parts
+        ml = len(mod_parts)
+        for i in range(ml):
+            if path_parts[i-ml:] == mod_parts[:ml-i]:
+                match_mod = mod_parts[-i:]
+                break
+        log.debug('Remainder to match: %r', match_mod)
+
+        import jedi
+        completions = jedi.api.names(path=found, references=True)
+        completions = utils.jedi_walk(completions)
+        while len(match_mod):
+            for c in completions:
+                if c.name == match_mod[0]:
+                    completions = c.defined_names()
+                    break
+            else:
+                log.debug('No more matches at %r', match_mod[0])
+                return []
+            match_mod = match_mod[:-1]
+
+        out = []
+        tmp_filecache = {}
+        seen = set()
+        for c in completions:
+            name, type_, desc, abbr = self.parse_completion(c, tmp_filecache)
+            seen_key = (type_, name)
+            if seen_key in seen:
+                continue
+            seen.add(seen_key)
+            kind = type_ if not self.use_short_types \
+                else _types.get(type_) or type_
+            out.append((c.module_path, name, type_, desc, abbr, kind))
+        return out
 
     @retry_completion
     def script_completion(self, source, line, col, filename):
@@ -385,13 +449,16 @@ class Client(object):
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({
-            'PYTHONPATH': jedi_path,
+            'PYTHONPATH': ':'.join((jedi_path,
+                                    os.path.dirname(os.path.dirname(__file__)))),
         })
 
+        prog = 'python'
         if 'VIRTUAL_ENV' in os.environ:
             self.env['VIRTUAL_ENV'] = os.getenv('VIRTUAL_ENV')
+            prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
 
-        self.cmd = ['python', '-u', __file__, '--desc-length', str(desc_len)]
+        self.cmd = [prog, '-u', __file__, '--desc-length', str(desc_len)]
         if short_types:
             self.cmd.append('--short-types')
         if show_docstring:
