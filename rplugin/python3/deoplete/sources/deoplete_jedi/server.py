@@ -183,7 +183,10 @@ class Server(object):
 
             if not out and cache_key[-1] in ('package', 'local'):
                 # The backup plan
-                out = self.module_completions(cache_key[0], sys.path)
+                try:
+                    out = self.module_completions(cache_key[0], sys.path)
+                except Exception:
+                    pass
 
             stream_write(sys.stdout, out)
             sys.path[:] = orig_path

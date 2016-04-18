@@ -50,6 +50,14 @@ class Source(Base):
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
 
+    def on_post_filter(self, context):
+        input_line = context.get('input').strip()
+        b, d = cache.balanced(input_line)
+        candidates = context.get('candidates')
+        rank = ['']
+        self.debug('candidates %r', candidates)
+        return candidates
+
     def get_complete_position(self, context):
         pattern = r'\w*$'
         if context['input'].lstrip().startswith(('from ', 'import ')):
