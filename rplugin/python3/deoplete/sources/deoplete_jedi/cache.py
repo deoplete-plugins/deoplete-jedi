@@ -146,7 +146,8 @@ def reap_cache(max_age=300):
         now = time.time()
         cur_len = len(_cache)
         for cached in list(_cache.values()):
-            if cached.key[-1] not in ('package', 'local') \
+            if cached.key[-1] not in ('package', 'local', 'boilerplate~',
+                                      'import~') \
                     and now - cached._touched > max_age:
                 _cache.pop(cached.key)
         return len(_cache), cur_len
@@ -385,7 +386,7 @@ def cache_context(filename, context, source):
             elif is_package(import_key):
                 cache_key = (import_key, 'package')
             else:
-                cache_key = import_key
+                cache_key = ('import~',)
 
     if not cache_key:
         obj = split_module(cinput.strip())
