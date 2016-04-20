@@ -379,7 +379,8 @@ def cache_context(filename, context, source):
                 import_key, _ = import_key.rsplit('.', 1)
             import_key = import_key.rstrip('.')
             module_file = utils.module_search(import_key,
-                                              [os.path.dirname(filename)])
+                                              [os.getcwd(),
+                                               os.path.dirname(filename)])
             if module_file:
                 cache_key = (import_key, 'local')
                 extra_modules.append(module_file)
