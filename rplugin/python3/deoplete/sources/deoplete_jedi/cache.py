@@ -21,6 +21,8 @@ _file_cache = set(['import~'])
 _cache_lock = threading.RLock()
 _cache = {}
 
+python_path = 'python'
+
 log = logging.getLogger('deoplete.jedi.cache')
 
 # This uses [\ \t] to avoid spanning lines
@@ -67,7 +69,7 @@ class CacheEntry(object):
 def get_cache_path():
     global _cache_path
     if not _cache_path or not os.path.isdir(_cache_path):
-        p = subprocess.Popen(['python', '-V'], stdout=subprocess.PIPE,
+        p = subprocess.Popen([python_path, '-V'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         version = re.search(r'(\d+\.\d+)\.', (stdout or stderr).decode('utf8')).group(1)
@@ -309,7 +311,7 @@ def sys_path(refresh=False):
     global _paths
     if not _paths or refresh:
         p = subprocess.Popen([
-            'python',
+            python_path,
             '-c', r'import sys; print("\n".join(sys.path))',
         ], stdout=subprocess.PIPE)
         stdout, _ = p.communicate()

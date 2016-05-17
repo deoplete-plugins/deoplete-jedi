@@ -23,3 +23,7 @@ let g:deoplete#sources#jedi#show_docstring =
 " cache.  Two workers may be needed if working with very large source files.
 let g:deoplete#sources#jedi#worker_threads =
       \ get(g:, 'deoplete#sources#jedi#worker_threads', 1)
+
+" Hard coded python interpreter location
+let g:deoplete#sources#jedi#python_path =
+      \ get(g:, 'deoplete#sources#jedi#python_path', '')
