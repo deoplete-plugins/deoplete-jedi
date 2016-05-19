@@ -42,9 +42,6 @@ class Source(Base):
         self.show_docstring = \
             self.vim.vars['deoplete#sources#jedi#show_docstring']
 
-        self.complete_min_length = \
-            self.vim.vars['deoplete#auto_complete_start_length']
-
         self.worker_threads = \
             self.vim.vars['deoplete#sources#jedi#worker_threads']
 
