@@ -446,7 +446,7 @@ class Client(object):
     max_completion_count = 50
 
     def __init__(self, desc_len=0, short_types=False, show_docstring=False,
-                 debug=False):
+                 debug=False, python_path=None):
         self._server = None
         self._count = 0
         self.version = (0, 0, 0, 'final', 0)
@@ -456,7 +456,11 @@ class Client(object):
                                     os.path.dirname(os.path.dirname(__file__)))),
         })
 
-        prog = 'python'
+        if not python_path:
+            prog = 'python'
+        else:
+            prog = python_path
+
         if 'VIRTUAL_ENV' in os.environ:
             self.env['VIRTUAL_ENV'] = os.getenv('VIRTUAL_ENV')
             prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')

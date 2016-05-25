@@ -38,7 +38,13 @@ Plug 'zchee/deoplete-jedi'
   used instead.  Default: `50`
 - `deoplete#sources#jedi#enable_cache`: Enables caching of completions for
   faster results.  Default: `1`
-- `deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.  Default: `0`
+- `deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
+  Default: `0`
+- `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use
+  for the completion server.  deoplete-jedi uses the first available `python`
+  in `$PATH`.  Use this only if you want use a specific Python interpreter.
+  This has no effect if `$VIRTUAL_ENV` is present in the environment.
+  **Note**: This is completely unrelated to configuring Neovim.
 
 
 ## Virtual Environments

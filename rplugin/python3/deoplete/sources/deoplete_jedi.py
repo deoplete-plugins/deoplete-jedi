@@ -45,6 +45,9 @@ class Source(Base):
         self.worker_threads = \
             self.vim.vars['deoplete#sources#jedi#worker_threads']
 
+        self.python_path = \
+            self.vim.vars['deoplete#sources#jedi#python_path']
+
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
 
@@ -68,9 +71,11 @@ class Source(Base):
     @profiler.profile
     def gather_candidates(self, context):
         if not self.workers_started:
+            if self.python_path and 'VIRTUAL_ENV' not in os.environ:
+                cache.python = self.python_path
             worker.start(max(1, self.worker_threads), self.description_length,
                          self.use_short_types, self.show_docstring,
-                         self.debug_enabled)
+                         self.debug_enabled, self.python_path)
             cache.start_background(worker.comp_queue)
             self.workers_started = True
 
