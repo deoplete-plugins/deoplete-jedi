@@ -6,6 +6,16 @@ import logging
 log = logging.getLogger('server')
 
 
+def file_mtime(filename):
+    """Get file modification time
+
+    Return 0 if the file does not exist
+    """
+    if not os.path.exists(filename):
+        return 0
+    return int(os.path.getmtime(filename))
+
+
 def module_file(dirname, suffix, base):
     """Find a script that matches the suffix path."""
     search = os.path.abspath(os.path.join(dirname, suffix))

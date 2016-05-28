@@ -6,6 +6,7 @@ import logging
 import threading
 
 from .server import Client
+from .utils import file_mtime
 
 log = logging.getLogger('deoplete.jedi')
 workers = []
@@ -32,14 +33,14 @@ class Worker(threading.Thread):
         completions = self._client.completions(cache_key, source, line, col,
                                                filename)
         out = None
-        modules = {f: int(os.path.getmtime(f)) for f in extra_modules}
+        modules = {f: file_mtime(f) for f in extra_modules}
         if completions is not None:
             out = []
             for c in completions:
                 module_path, name, type_, desc, abbr, kind = c
                 if module_path and module_path not in modules \
                         and os.path.exists(module_path):
-                    modules[module_path] = int(os.path.getmtime(module_path))
+                    modules[module_path] = file_mtime(module_path)
 
                 out.append({
                     '$type': type_,
