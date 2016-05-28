@@ -140,6 +140,7 @@ class Server(object):
         self.desc_len = desc_len
         self.use_short_types = short_types
         self.show_docstring = show_docstring
+        self.unresolved_imports = set()
 
         from jedi import settings
         settings.use_filesystem_cache = False
@@ -341,10 +342,11 @@ class Server(object):
             if parent and (len(c_parents) > len(parent) or
                            c_parents != parent[:len(c_parents)]):
                 continue
-            if c.type == 'import':
+            if c.type == 'import' and c.full_name not in self.unresolved_imports:
                 resolved = self.resolve_import(c)
                 if resolved is None:
-                    log.debug('Could not resolve import: %r', c)
+                    log.debug('Could not resolve import: %r', c.full_name)
+                    self.unresolved_imports.add(c.full_name)
                     continue
                 else:
                     c = resolved
