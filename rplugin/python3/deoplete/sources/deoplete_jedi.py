@@ -72,7 +72,7 @@ class Source(Base):
     def gather_candidates(self, context):
         if not self.workers_started:
             if self.python_path and 'VIRTUAL_ENV' not in os.environ:
-                cache.python = self.python_path
+                cache.python_path = self.python_path
             worker.start(max(1, self.worker_threads), self.description_length,
                          self.use_short_types, self.show_docstring,
                          self.debug_enabled, self.python_path)
