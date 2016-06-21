@@ -6,7 +6,7 @@ import time
 sys.path.insert(1, os.path.dirname(__file__))
 
 from deoplete_jedi import cache, worker, profiler, utils
-from deoplete.sources.base import Base
+from .base import Base
 
 
 def sort_key(item):
