@@ -138,6 +138,7 @@ class Source(Base):
             wait = True
 
         self.debug('Key: %r, Refresh: %r, Wait: %r' % (cache_key, refresh, wait))
+
         if cache_key and (not cached or refresh):
             n = time.time()
             worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
