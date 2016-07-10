@@ -25,7 +25,6 @@ class Source(Base):
         self.rank = 500
         self.filetypes = ['python']
         self.input_pattern = (r'[\w\)\]\}\'\"]+\.\w*$|'
-                              r'\w+\s*=\s*\w*$|'
                               r'^\s*@\w*$|'
                               r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
                               r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
