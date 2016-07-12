@@ -42,7 +42,7 @@ class CacheEntry(object):
         self._touched = time.time()
         self.time = dict.get('time')
         self.modules = dict.get('modules')
-        self.completions = dict.get('completions')
+        self.completions = dict.get('completions', [])
         self.refresh = False
         if self.completions is None:
             self.refresh = True
@@ -120,7 +120,8 @@ def store(key, value):
             # Jedi producing an error and not getting any completions.  Use any
             # previously cached completions while a refresh is attempted.
             old = _cache.get(key)
-            value.completions = old.completions
+            if old is not None:
+                value.completions = old.completions
 
         _cache[key] = value
 
@@ -157,6 +158,7 @@ def reap_cache(max_age=300):
 
 def cache_processor_thread(compl_queue):
     last_clear = time.time()
+    errors = 0
     while True:
         now = time.time()
         if now - last_clear >= 30:
@@ -173,8 +175,14 @@ def cache_processor_thread(compl_queue):
             if cached is None or cached.time <= compl.get('time'):
                 cached = store(cache_key, compl)
                 log.debug('Processed: %r', cache_key)
+            errors = 0
         except queue.Empty:
             pass
+        except Exception as e:
+            errors += 1
+            if errors > 3:
+                break
+            log.error('Got exception while processing: %r', e)
 
 
 def start_background(compl_queue):
