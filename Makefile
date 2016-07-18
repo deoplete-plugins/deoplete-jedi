@@ -19,7 +19,7 @@ test: flake8
 lint: lint_modules flake8
 
 lint_modules:
-	pip3 install -U -r ./tests/requirements.txt
+	pip3 install -U --user -r ./tests/requirements.txt
 
 flake8:
 	flake8 -v --config=$(PWD)/.flake8 ${DEOPLETE_JEDI} ${HELPER} ${PROFILER} || true
