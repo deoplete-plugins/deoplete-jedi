@@ -29,26 +29,43 @@ class Source(Base):
                               r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
                               r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
 
-        self.debug_enabled = \
-            self.vim.vars['deoplete#sources#jedi#debug_enabled']
+    def on_init(self, context):
+        vars = context['vars']
 
-        self.description_length = \
-            self.vim.vars['deoplete#sources#jedi#statement_length']
-
-        self.use_short_types = \
-            self.vim.vars['deoplete#sources#jedi#short_types']
-
-        self.show_docstring = \
-            self.vim.vars['deoplete#sources#jedi#show_docstring']
-
-        self.worker_threads = \
-            self.vim.vars['deoplete#sources#jedi#worker_threads']
-
-        self.python_path = \
-            self.vim.vars['deoplete#sources#jedi#python_path']
+        self.statement_length = vars.get(
+            'deoplete#sources#jedi#statement_length', 0
+        )
+        self.use_short_types = vars.get(
+            'deoplete#sources#jedi#short_types', False
+        )
+        self.show_docstring = vars.get(
+            'deoplete#sources#jedi#show_docstring', False
+        )
+        # Only one worker is really needed since deoplete-jedi has a pretty
+        # aggressive cache.
+        # Two workers may be needed if working with very large source files.
+        self.worker_threads = vars.get(
+            'deoplete#sources#jedi#worker_threads', 1
+        )
+        # Hard coded python interpreter location
+        self.python_path = vars.get(
+            'deoplete#sources#jedi#python_path', ''
+        )
+        self.debug_enabled = vars.get(
+            'deoplete#sources#jedi#debug_enabled', False
+        )
 
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
+
+        if not self.workers_started:
+            if self.python_path and 'VIRTUAL_ENV' not in os.environ:
+                cache.python_path = self.python_path
+            worker.start(max(1, self.worker_threads), self.statement_length,
+                         self.use_short_types, self.show_docstring,
+                         self.debug_enabled, self.python_path)
+            cache.start_background(worker.comp_queue)
+            self.workers_started = True
 
     def get_complete_position(self, context):
         pattern = r'\w*$'
@@ -69,15 +86,6 @@ class Source(Base):
 
     @profiler.profile
     def gather_candidates(self, context):
-        if not self.workers_started:
-            if self.python_path and 'VIRTUAL_ENV' not in os.environ:
-                cache.python_path = self.python_path
-            worker.start(max(1, self.worker_threads), self.description_length,
-                         self.use_short_types, self.show_docstring,
-                         self.debug_enabled, self.python_path)
-            cache.start_background(worker.comp_queue)
-            self.workers_started = True
-
         refresh_boilerplate = False
         if not self.boilerplate:
             bp = cache.retrieve(('boilerplate~',))
