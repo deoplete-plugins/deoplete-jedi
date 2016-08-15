@@ -472,15 +472,19 @@ class Client(object):
     max_completion_count = 50
 
     def __init__(self, desc_len=0, short_types=False, show_docstring=False,
-                 debug=False, python_path=None):
+                 debug=False, python_path=None, site_packages=None):
         self._server = None
         self._count = 0
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
-        self.env.update({
-            'PYTHONPATH': ':'.join((jedi_path,
-                                    os.path.dirname(os.path.dirname(__file__)))),
-        })
+
+        site_packages_paths = [
+            jedi_path,
+            os.path.dirname(os.path.dirname(__file__)),
+        ]
+        if site_packages:
+            site_packages_paths.extend(site_packages)
+        self.env.update({'PYTHONPATH': ':'.join(site_packages_paths)})
 
         if not python_path:
             prog = 'python'

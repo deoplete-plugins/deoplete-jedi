@@ -51,6 +51,9 @@ class Source(Base):
         self.python_path = vars.get(
             'deoplete#sources#jedi#python_path', ''
         )
+        self.site_packages = vars.get(
+            'deoplete#sources#jedi#site_packages', ''
+        ).split(':')
         self.debug_enabled = vars.get(
             'deoplete#sources#jedi#debug_enabled', False
         )
@@ -63,7 +66,8 @@ class Source(Base):
                 cache.python_path = self.python_path
             worker.start(max(1, self.worker_threads), self.statement_length,
                          self.use_short_types, self.show_docstring,
-                         self.debug_enabled, self.python_path)
+                         self.debug_enabled, self.python_path,
+                         self.site_packages)
             cache.start_background(worker.comp_queue)
             self.workers_started = True
 
