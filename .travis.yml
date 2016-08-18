@@ -15,16 +15,13 @@ matrix:
     os: linux
     dist: trusty
     compiler: clang
-    python: '3.5-dev'
+    python: 'nightly'
 
 before_install:
   - uname -a
   - cat /etc/lsb-release
 
 install:
-  - pip3 install -r ci/requirements.txt
-
-script:
   - make test
 
 notifications:
