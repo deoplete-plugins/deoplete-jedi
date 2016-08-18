@@ -1,4 +1,4 @@
-FROM zchee/neovim-python
+FROM zchee/neovim:python
 MAINTAINER zchee <zchee.io@gmail.com>
 
 RUN pip3 install jedi \
