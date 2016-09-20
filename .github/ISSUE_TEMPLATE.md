@@ -1,4 +1,4 @@
-# Problems summary
+# Problem summary
 
 
 ## Expected
@@ -10,33 +10,35 @@
  * Neovim version:
 
 
-## Provide a minimal init.vim with less than 50 lines (Required!)
+## Provide a minimal init.vim with less than 50 lines (required)
 
 ```vim
-" Your minimal init.vim
+" Use the following as a template.
 set runtimepath+=~/path/to/deoplete.nvim/
 set runtimepath+=~/path/to/deoplete-jedi/
 let g:deoplete#enable_at_startup = 1
+call deoplete#custom#set('jedi', 'debug_enabled', 1)
+call deoplete#enable_logging('DEBUG', '/tmp/deoplete.log')
 ```
 
+## Generate logfiles if appropriate
 
-## The reproduce ways from neovim starting (Required!)
-
- 1. foo
- 2. bar
- 3. baz
-
-
-## Generate a logfile if appropriate
-
- 1. export NVIM_PYTHON_LOG_FILE=/tmp/log
+ 1. export NVIM_PYTHON_LOG_FILE=/tmp/nvim-log
  2. export NVIM_PYTHON_LOG_LEVEL=DEBUG
  3. nvim -u minimal.vimrc
- 4. some works
- 5. cat /tmp/log_{PID}
+
+Then look at and attach the files `/tmp/nvim-log_{PID}` and
+`/tmp/deoplete.log` here.
+
+
+## Steps to reproduce the issue after starting Neovim (required)
+
+ 1.
+ 2.
+ 3.
 
 
 ## Screen shot (if possible)
 
 
-## Upload the log file
+## Upload the logfile(s)
