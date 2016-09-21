@@ -474,7 +474,6 @@ class Client(object):
     def __init__(self, desc_len=0, short_types=False, show_docstring=False,
                  debug=False, python_path=None):
         self._server = None
-        self._count = 0
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({
@@ -516,6 +515,7 @@ class Client(object):
         self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, env=self.env)
         self.version = stream_read(self._server.stdout)
+        self._count = 0
 
     def completions(self, *args):
         """Get completions from the server.
@@ -524,12 +524,17 @@ class Client(object):
         restart the server.
         """
         if self._count > self.max_completion_count:
-            self._count = 0
             self.restart()
 
         self._count += 1
-        stream_write(self._server.stdin, args)
-        return stream_read(self._server.stdout)
+        try:
+            stream_write(self._server.stdin, args)
+            return stream_read(self._server.stdout)
+        except StreamError as exc:
+            log.error('Caught %s during handling completions(%s), '
+                      ' restarting server', exc, args)
+            self.restart()
+            time.sleep(0.2)
 
 
 if __name__ == '__main__':
