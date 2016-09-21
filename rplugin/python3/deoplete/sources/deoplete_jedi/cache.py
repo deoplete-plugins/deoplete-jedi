@@ -169,7 +169,7 @@ def cache_processor_thread(compl_queue):
             last_clear = time.time()
 
         try:
-            compl = compl_queue.get(timeout=0.01)
+            compl = compl_queue.get()
             cache_key = compl.get('cache_key')
             cached = retrieve(cache_key)
             if cached is None or cached.time <= compl.get('time'):
