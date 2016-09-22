@@ -2,7 +2,7 @@
 [flake8]
 # comma-separated filename and glob patterns
 #   default: .svn,CVS,.bzr,.hg,.git,__pycache
-exclude = .svn,CVS,.bzr,.hg,.git,__pycache,tests/*
+exclude = .svn,CVS,.bzr,.hg,.git,__pycache__,tests/*,rplugin/python3/deoplete/jedi
 
 # comma-separatedd filename and glob patterns
 #   default: *.py
