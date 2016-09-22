@@ -22,6 +22,9 @@ before_install:
   - cat /etc/lsb-release
 
 install:
+  - pip3 install -q -U -r ./tests/requirements.txt
+
+script:
   - make test
 
 notifications:
