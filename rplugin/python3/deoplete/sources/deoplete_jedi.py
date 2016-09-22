@@ -51,9 +51,6 @@ class Source(Base):
         self.python_path = vars.get(
             'deoplete#sources#jedi#python_path', ''
         )
-        self.debug_enabled = vars.get(
-            'deoplete#sources#jedi#debug_enabled', False
-        )
 
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
