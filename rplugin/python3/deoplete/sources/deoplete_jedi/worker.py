@@ -68,7 +68,6 @@ class Worker(threading.Thread):
                 self.log.debug('Completed work')
             except Exception:
                 self.log.debug('Worker error', exc_info=True)
-                time.sleep(0.05)
 
 
 def start(count, desc_len=0, short_types=False, show_docstring=False,
