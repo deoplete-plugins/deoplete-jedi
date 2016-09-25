@@ -62,16 +62,12 @@ class Worker(threading.Thread):
     def run(self):
         while True:
             try:
-                work = self.in_queue.get(block=False, timeout=0.5)
+                work = self.in_queue.get()
                 self.log.debug('Got work')
-                self.out_queue.put(self.completion_work(*work), block=False)
+                self.out_queue.put(self.completion_work(*work), timeout=0.5)
                 self.log.debug('Completed work')
-            except queue.Empty:
-                # Sleep is mandatory to avoid pegging the CPU
-                time.sleep(0.01)
             except Exception:
                 self.log.debug('Worker error', exc_info=True)
-                time.sleep(0.05)
 
 
 def start(count, desc_len=0, short_types=False, show_docstring=False,

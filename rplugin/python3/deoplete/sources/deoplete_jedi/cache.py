@@ -145,39 +145,33 @@ def reap_cache(max_age=300):
     Module level completions are exempt from reaping.  It is assumed that
     module level completions will have a key length of 1.
     """
-    with _cache_lock:
-        now = time.time()
-        cur_len = len(_cache)
-        for cached in list(_cache.values()):
-            if cached.key[-1] not in ('package', 'local', 'boilerplate~',
-                                      'import~') \
-                    and now - cached._touched > max_age:
-                _cache.pop(cached.key)
-        return len(_cache), cur_len
+    while True:
+        time.sleep(300)
+
+        with _cache_lock:
+            now = time.time()
+            cur_len = len(_cache)
+            for cached in list(_cache.values()):
+                if cached.key[-1] not in ('package', 'local', 'boilerplate~',
+                                          'import~') \
+                        and now - cached._touched > max_age:
+                    _cache.pop(cached.key)
+
+            if cur_len - len(_cache) > 0:
+                log.debug('Removed %d of %d cache items', len(_cache), cur_len)
 
 
 def cache_processor_thread(compl_queue):
-    last_clear = time.time()
     errors = 0
     while True:
-        now = time.time()
-        if now - last_clear >= 30:
-            after, before = reap_cache()
-            reaped = before - after
-            if reaped > 0:
-                log.debug('Removed %d of %d cache items', reaped, before)
-            last_clear = time.time()
-
         try:
-            compl = compl_queue.get(timeout=0.01)
+            compl = compl_queue.get()
             cache_key = compl.get('cache_key')
             cached = retrieve(cache_key)
             if cached is None or cached.time <= compl.get('time'):
                 cached = store(cache_key, compl)
                 log.debug('Processed: %r', cache_key)
             errors = 0
-        except queue.Empty:
-            pass
         except Exception as e:
             errors += 1
             if errors > 3:
@@ -188,6 +182,9 @@ def cache_processor_thread(compl_queue):
 def start_background(compl_queue):
     log.debug('Starting reaper thread')
     t = threading.Thread(target=cache_processor_thread, args=(compl_queue,))
+    t.daemon = True
+    t.start()
+    t = threading.Thread(target=reap_cache)
     t.daemon = True
     t.start()
 
