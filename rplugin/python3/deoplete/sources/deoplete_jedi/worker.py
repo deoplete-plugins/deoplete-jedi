@@ -1,5 +1,4 @@
 import os
-import json
 import time
 import queue
 import logging
@@ -32,31 +31,18 @@ class Worker(threading.Thread):
                         filename):
         completions = self._client.completions(cache_key, source, line, col,
                                                filename)
-        out = None
         modules = {f: file_mtime(f) for f in extra_modules}
         if completions is not None:
-            out = []
             for c in completions:
-                module_path, name, type_, desc, abbr, kind = c
-                if module_path and module_path not in modules \
-                        and os.path.exists(module_path):
-                    modules[module_path] = file_mtime(module_path)
-
-                out.append({
-                    '$type': type_,
-                    'word': name,
-                    'abbr': abbr,
-                    'kind': kind,
-                    'info': desc,
-                    'menu': '[jedi] ',
-                    'dup': 1,
-                })
+                m = c['module']
+                if m and m not in modules and os.path.exists(m):
+                    modules[m] = file_mtime(m)
 
         return {
             'cache_key': cache_key,
             'time': time.time(),
             'modules': modules,
-            'completions': out,
+            'completions': completions,
         }
 
     def run(self):

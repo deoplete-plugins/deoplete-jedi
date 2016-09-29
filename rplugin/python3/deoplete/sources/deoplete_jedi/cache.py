@@ -3,7 +3,6 @@ import re
 import glob
 import json
 import time
-import queue
 import hashlib
 import logging
 import threading
@@ -18,6 +17,8 @@ _cache_path = None
 # caching import modules. It should not be cached to disk.
 _file_cache = set(['import~'])
 
+# Cache version allows us to invalidate outdated cache data structures.
+_cache_version = 9
 _cache_lock = threading.RLock()
 _cache = {}
 
@@ -59,6 +60,7 @@ class CacheEntry(object):
 
     def to_dict(self):
         return {
+            'version': _cache_version,
             'cache_key': self.key,
             'time': self.time,
             'modules': self.modules,
@@ -94,14 +96,16 @@ def retrieve(key):
             # was seen.
             cache_file = os.path.join(get_cache_path(), '{}.json'.format(key[0]))
             if os.path.isfile(cache_file):
-                _file_cache.add(key[0])
                 with open(cache_file, 'rt') as fp:
                     try:
-                        cached = CacheEntry(json.load(fp))
-                        cached.time = time.time()
-                        _cache[key] = cached
-                        log.debug('Loaded from file: %r', key)
-                        return cached
+                        data = json.load(fp)
+                        if data.get('version', 0) >= _cache_version:
+                            _file_cache.add(key[0])
+                            cached = CacheEntry(data)
+                            cached.time = time.time()
+                            _cache[key] = cached
+                            log.debug('Loaded from file: %r', key)
+                            return cached
                     except Exception:
                         pass
         cached = _cache.get(key)
