@@ -356,7 +356,7 @@ def cache_context(filename, context, source):
 
     Cache keys are made using tuples to make them easier to interpret later.
     """
-    cinput = context['input'].lstrip()
+    cinput = context['input'].lstrip().lstrip('@')
     if not re.sub(r'[\s\d\.]+', '', cinput):
         return None, []
     filename_hash = hashlib.md5(filename.encode('utf8')).hexdigest()
