@@ -95,7 +95,7 @@ def stream_read(pipe):
 def stream_write(pipe, obj):
     """Write data to the pipe."""
     data = pickle.dumps(obj, 2)
-    header = struct.pack('I', len(data))
+    header = struct.pack(b'I', len(data))
     buffer = getattr(pipe, 'buffer', pipe)
     buffer.write(header + data)
     pipe.flush()
