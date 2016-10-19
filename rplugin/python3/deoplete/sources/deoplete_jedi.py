@@ -10,7 +10,7 @@ from .base import Base
 
 
 def sort_key(item):
-    w = item.get('word')
+    w = item.get('name')
     l = len(w)
     z = l - len(w.lstrip('_'))
     return (('z' * z) + w.lower()[z:], len(w))
@@ -76,10 +76,61 @@ class Source(Base):
     def mix_boilerplate(self, completions):
         seen = set()
         for item in self.boilerplate + completions:
-            if item['word'] in seen:
+            if item['name'] in seen:
                 continue
-            seen.add(item['word'])
+            seen.add(item['name'])
             yield item
+
+    def finalize(self, item):
+        abbr = item['name']
+
+        if self.show_docstring:
+            desc = item['doc']
+        else:
+            desc = ''
+
+        if item['params'] is not None:
+            sig = '{}({})'.format(item['name'], ', '.join(item['params']))
+            sig_len = len(sig)
+
+            desc = sig + '\n\n' + desc
+
+            if self.statement_length > 0 and sig_len > self.statement_length:
+                params = []
+                length = len(item['name']) + 2
+
+                for p in item['params']:
+                    p = p.split('=', 1)[0]
+                    length += len(p)
+                    params.append(p)
+
+                length += 2 * (len(params) - 1)
+
+                # +5 for the ellipsis and separator
+                while length + 5 > self.statement_length and len(params):
+                    length -= len(params[-1]) + 2
+                    params = params[:-1]
+
+                if len(item['params']) > len(params):
+                    params.append('...')
+
+                sig = '{}({})'.format(item['name'], ', '.join(params))
+
+            abbr = sig
+
+        if self.use_short_types:
+            kind = item['short_type'] or item['type']
+        else:
+            kind = item['type']
+
+        return {
+            'word': item['name'],
+            'abbr': abbr,
+            'kind': kind,
+            'info': desc.strip(),
+            'menu': '[jedi] ',
+            'dup': 1,
+        }
 
     @profiler.profile
     def gather_candidates(self, context):
@@ -167,6 +218,6 @@ class Source(Base):
             else:
                 out = cached.completions
             if filters:
-                out = (x for x in out if x['$type'] in filters)
-            return [x for x in sorted(out, key=sort_key)]
+                out = (x for x in out if x['type'] in filters)
+            return [self.finalize(x) for x in sorted(out, key=sort_key)]
         return []
