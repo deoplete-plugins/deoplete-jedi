@@ -27,7 +27,8 @@ from glob import glob
 from deoplete_jedi import utils
 
 log = logging.getLogger('server')
-log.addHandler(logging.NullHandler)
+nullHandler = logging.NullHandler()
+log.addHandler(nullHandler)
 
 try:
     import cPickle as pickle
@@ -518,7 +519,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.debug:
-        log.removeHandler(logging.NullHandler)
+        log.removeHandler(nullHandler)
         handler = logging.FileHandler('/tmp/jedi-server.log')
         handler.setLevel(logging.DEBUG)
         log.addHandler(handler)
