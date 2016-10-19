@@ -159,7 +159,7 @@ class Server(object):
             if not isinstance(data, tuple):
                 continue
 
-            cache_key, source, line, col, filename = data
+            cache_key, source, line, col, filename, options = data
             orig_path = sys.path[:]
             venv = os.getenv('VIRTUAL_ENV')
             if venv:
@@ -172,6 +172,10 @@ class Server(object):
                 sys.path.insert(0, add_path)
             if filename:
                 sys.path.append(os.path.dirname(filename))
+
+            if isinstance(options, dict):
+                # Add extra paths if working on a Python remote plugin.
+                sys.path.extend(utils.rplugin_runtime_paths(options))
 
             # Decorators on incomplete functions cause an error to be raised by
             # Jedi.  I assume this is because Jedi is attempting to evaluate

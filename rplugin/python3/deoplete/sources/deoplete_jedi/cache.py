@@ -390,8 +390,9 @@ def cache_context(filename, context, source):
                 import_key, _ = import_key.rsplit('.', 1)
             import_key = import_key.rstrip('.')
             module_file = utils.module_search(import_key,
-                                              [os.getcwd(),
-                                               os.path.dirname(filename)])
+                                              [context.get('cwd'),
+                                               os.path.dirname(filename)] +
+                                              utils.rplugin_runtime_paths(context))
             if module_file:
                 cache_key = (import_key, 'local')
                 extra_modules.append(module_file)

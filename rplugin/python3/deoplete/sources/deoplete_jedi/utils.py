@@ -1,5 +1,9 @@
 import os
 import re
+import sys
+import logging
+
+log = logging.getLogger('server')
 
 
 def file_mtime(filename):
@@ -44,6 +48,29 @@ def module_search(module, paths):
         if found:
             return found
     return ''
+
+
+def rplugin_runtime_paths(context):
+    """Adds Neovim runtime paths.
+
+    Additional paths are added only if a `rplugin/python*` exists.
+    """
+    paths = []
+
+    if context and 'cwd' in context:
+        cwd = context.get('cwd')
+        rplugins = ('rplugin/pythonx',
+                    'rplugin/python{}'.format(sys.version_info[0]))
+        if any([os.path.exists(os.path.join(cwd, x))
+                for x in rplugins]):
+            for rtp in context.get('runtimepath', '').split(','):
+                if not rtp:
+                    continue
+                for r in rplugins:
+                    p = os.path.join(rtp, r)
+                    if os.path.exists(p):
+                        paths.append(p)
+    return paths
 
 
 def jedi_walk(completions, depth=0, max_depth=5):

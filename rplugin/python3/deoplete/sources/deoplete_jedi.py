@@ -158,7 +158,7 @@ class Source(Base):
             else:
                 # This should be the first time any completion happened, so
                 # `wait` will be True.
-                worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
+                worker.work_queue.put((('boilerplate~',), [], '', 1, 0, '', None))
 
         line = context['position'][1]
         col = context['complete_position']
@@ -207,11 +207,17 @@ class Source(Base):
         if cached is None:
             wait = True
 
+        # Extra options to pass to the server.
+        options = {
+            'cwd': context.get('cwd'),
+            'runtimepath': context.get('runtimepath'),
+        }
+
         self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
         if cache_key and (not cached or refresh):
             n = time.time()
             worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
-                                   line, col, str(buf.name)))
+                                   line, col, str(buf.name), options))
             while wait and time.time() - n < 2:
                 cached = cache.retrieve(cache_key)
                 if cached and cached.time >= n:
