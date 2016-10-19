@@ -13,11 +13,13 @@ from __future__ import unicode_literals
 import os
 import re
 import sys
+import time
 import struct
 import logging
 import argparse
 import functools
 import subprocess
+
 from glob import glob
 
 # This is be possible because the path is inserted in deoplete_jedi.py as well
@@ -25,7 +27,8 @@ from glob import glob
 from deoplete_jedi import utils
 
 log = logging.getLogger('server')
-log.addHandler(logging.NullHandler)
+nullHandler = logging.NullHandler()
+log.addHandler(nullHandler)
 
 try:
     import cPickle as pickle
@@ -143,6 +146,7 @@ class Server(object):
         self.unresolved_imports = set()
 
         from jedi import settings
+
         settings.use_filesystem_cache = False
 
     def _loop(self):
@@ -249,6 +253,7 @@ class Server(object):
         log.debug('Remainder to match: %r', match_mod)
 
         import jedi
+
         completions = jedi.api.names(path=found, references=True)
         completions = utils.jedi_walk(completions)
         while len(match_mod):
@@ -277,6 +282,7 @@ class Server(object):
     def script_completion(self, source, line, col, filename):
         """Standard Jedi completions"""
         import jedi
+
         log.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
         completions = jedi.Script(source, line, col, filename).completions()
         out = []
@@ -328,6 +334,7 @@ class Server(object):
         This would be slow in Vim without threading.
         """
         import jedi
+
         completions = jedi.api.names(source, filename, all_scopes=True)
         out = []
         tmp_filecache = {}
@@ -389,6 +396,7 @@ class Server(object):
         Returns (name, type, description, abbreviated)
         """
         from jedi.api.classes import Completion
+
         name = comp.name
 
         if isinstance(comp, Completion):
@@ -511,7 +519,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.debug:
-        log.removeHandler(logging.NullHandler)
+        log.removeHandler(nullHandler)
         handler = logging.FileHandler('/tmp/jedi-server.log')
         handler.setLevel(logging.DEBUG)
         log.addHandler(handler)
