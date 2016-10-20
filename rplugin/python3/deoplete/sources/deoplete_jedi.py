@@ -40,7 +40,7 @@ class Source(Base):
         self.show_docstring = vars.get(
             'deoplete#sources#jedi#show_docstring', False)
         self.debug_server = vars.get(
-            'deoplete#sources#jedi#debug_server', False)
+            'deoplete#sources#jedi#debug_server', None)
         # Only one worker is really needed since deoplete-jedi has a pretty
         # aggressive cache.
         # Two workers may be needed if working with very large source files.
@@ -55,18 +55,20 @@ class Source(Base):
 
         log_file = ''
         root_log = logging.getLogger('deoplete')
-        if not self.debug_enabled:
-            child_log = root_log.getChild('jedi')
-            child_log.propagate = False
 
-        if self.debug_enabled and self.debug_server:
+        if self.debug_server is not None and self.debug_server:
+            self.debug_enabled = True
             if isinstance(self.debug_server, str):
                 log_file = self.debug_server
             else:
                 for handler in root_log.handlers:
                     if isinstance(handler, logging.FileHandler):
-                        log_file = getattr(handler, 'baseFilename', None)
+                        log_file = handler.baseFilename
                         break
+
+        if not self.debug_enabled:
+            child_log = root_log.getChild('jedi')
+            child_log.propagate = False
 
         if not self.workers_started:
             if self.python_path and 'VIRTUAL_ENV' not in os.environ:
