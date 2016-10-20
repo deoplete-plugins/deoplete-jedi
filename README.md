@@ -45,6 +45,10 @@ Plug 'zchee/deoplete-jedi'
   in `$PATH`.  Use this only if you want use a specific Python interpreter.
   This has no effect if `$VIRTUAL_ENV` is present in the environment.
   **Note**: This is completely unrelated to configuring Neovim.
+- `g:deoplete#sources#jedi#debug_server`: Enable logging from the server.  If
+  set to `1`, server messages are emitted to Deoplete's log file.  This can
+  optionally be a string that points to a file for separate logging.  The log
+  level will be inherited from `deoplete#enable_logging()`.
 
 
 ## Virtual Environments

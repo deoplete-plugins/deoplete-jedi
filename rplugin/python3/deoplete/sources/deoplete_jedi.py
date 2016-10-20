@@ -2,11 +2,12 @@ import os
 import re
 import sys
 import time
+import logging
 
 sys.path.insert(1, os.path.dirname(__file__))
 
-from deoplete_jedi import cache, worker, profiler, utils
 from .base import Base
+from deoplete_jedi import cache, profiler, utils, worker
 
 
 def sort_key(item):
@@ -33,34 +34,42 @@ class Source(Base):
         vars = context['vars']
 
         self.statement_length = vars.get(
-            'deoplete#sources#jedi#statement_length', 0
-        )
+            'deoplete#sources#jedi#statement_length', 0)
         self.use_short_types = vars.get(
-            'deoplete#sources#jedi#short_types', False
-        )
+            'deoplete#sources#jedi#short_types', False)
         self.show_docstring = vars.get(
-            'deoplete#sources#jedi#show_docstring', False
-        )
+            'deoplete#sources#jedi#show_docstring', False)
+        self.debug_server = vars.get(
+            'deoplete#sources#jedi#debug_server', False)
         # Only one worker is really needed since deoplete-jedi has a pretty
         # aggressive cache.
         # Two workers may be needed if working with very large source files.
         self.worker_threads = vars.get(
-            'deoplete#sources#jedi#worker_threads', 1
-        )
+            'deoplete#sources#jedi#worker_threads', 1)
         # Hard coded python interpreter location
         self.python_path = vars.get(
-            'deoplete#sources#jedi#python_path', ''
-        )
+            'deoplete#sources#jedi#python_path', '')
 
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
+
+        log_file = None
+        root_log = logging.getLogger('deoplete')
+        if self.debug_enabled and self.debug_server:
+            if isinstance(self.debug_server, str):
+                log_file = self.debug_server
+            else:
+                for handler in root_log.handlers:
+                    if isinstance(handler, logging.FileHandler):
+                        log_file = getattr(handler, 'baseFilename', None)
+                        break
 
         if not self.workers_started:
             if self.python_path and 'VIRTUAL_ENV' not in os.environ:
                 cache.python_path = self.python_path
             worker.start(max(1, self.worker_threads), self.statement_length,
                          self.use_short_types, self.show_docstring,
-                         self.debug_enabled, self.python_path)
+                         (log_file, root_log.level), self.python_path)
             cache.start_background(worker.comp_queue)
             self.workers_started = True
 
