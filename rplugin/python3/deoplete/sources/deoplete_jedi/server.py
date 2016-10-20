@@ -26,9 +26,11 @@ from glob import glob
 # as set in PYTHONPATH by the Client class.
 from deoplete_jedi import utils
 
-log = logging.getLogger('deoplete.jedi.server')
+log = logging.getLogger('deoplete')
 nullHandler = logging.NullHandler()
-log.addHandler(nullHandler)
+
+if not log.handlers:
+    log.addHandler(nullHandler)
 
 try:
     import cPickle as pickle
@@ -529,6 +531,9 @@ if __name__ == '__main__':
         handler.setLevel(args.debug_level)
         log.addHandler(handler)
         log.setLevel(logging.DEBUG)
+        log = log.getChild('jedi.server')
 
     s = Server(args.desc_length, args.short_types, args.docstrings)
     s.run()
+else:
+    log = log.getChild('jedi.client')

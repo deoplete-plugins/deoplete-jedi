@@ -53,8 +53,12 @@ class Source(Base):
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
 
-        log_file = None
+        log_file = ''
         root_log = logging.getLogger('deoplete')
+        if not self.debug_enabled:
+            child_log = root_log.getChild('jedi')
+            child_log.propagate = False
+
         if self.debug_enabled and self.debug_server:
             if isinstance(self.debug_server, str):
                 log_file = self.debug_server
