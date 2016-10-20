@@ -49,6 +49,8 @@ class Source(Base):
         # Hard coded python interpreter location
         self.python_path = vars.get(
             'deoplete#sources#jedi#python_path', '')
+        self.extra_path = vars.get(
+            'deoplete#sources#jedi#extra_path', [])
 
         self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
@@ -179,7 +181,8 @@ class Source(Base):
             # If starting an import, only show module results
             filters.append('module')
 
-        cache_key, extra_modules = cache.cache_context(buf.name, context, src)
+        cache_key, extra_modules = cache.cache_context(buf.name, context, src,
+                                                       self.extra_path)
         cached = cache.retrieve(cache_key)
         if cached and not cached.refresh:
             modules = cached.modules
@@ -210,6 +213,7 @@ class Source(Base):
         # Extra options to pass to the server.
         options = {
             'cwd': context.get('cwd'),
+            'extra_path': self.extra_path,
             'runtimepath': context.get('runtimepath'),
         }
 
@@ -229,7 +233,7 @@ class Source(Base):
             # Refresh the boilerplate to ensure it's always up to date (just in
             # case).
             self.debug('Refreshing boilerplate')
-            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, ''))
+            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, '', None))
 
         if cached:
             if cached.completions is None:

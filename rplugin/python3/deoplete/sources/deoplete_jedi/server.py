@@ -174,6 +174,12 @@ class Server(object):
                 sys.path.append(os.path.dirname(filename))
 
             if isinstance(options, dict):
+                extra = options.get('extra_path')
+                if extra:
+                    if not isinstance(extra, list):
+                        extra = [extra]
+                    sys.path.extend(extra)
+
                 # Add extra paths if working on a Python remote plugin.
                 sys.path.extend(utils.rplugin_runtime_paths(options))
 

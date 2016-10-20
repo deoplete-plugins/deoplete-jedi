@@ -49,6 +49,8 @@ Plug 'zchee/deoplete-jedi'
   set to `1`, server messages are emitted to Deoplete's log file.  This can
   optionally be a string that points to a file for separate logging.  The log
   level will be inherited from `deoplete#enable_logging()`.
+- `g:deoplete#sources#jedi#extra_path`: A list of extra paths to add to
+  `sys.path` when performing completions.
 
 
 ## Virtual Environments
