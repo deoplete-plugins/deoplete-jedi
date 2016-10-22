@@ -28,9 +28,9 @@ class Worker(threading.Thread):
         self.log = log.getChild(self.name)
 
     def completion_work(self, cache_key, extra_modules, source, line, col,
-                        filename):
+                        filename, options):
         completions = self._client.completions(cache_key, source, line, col,
-                                               filename)
+                                               filename, options)
         modules = {f: file_mtime(f) for f in extra_modules}
         if completions is not None:
             for c in completions:
