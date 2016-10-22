@@ -20,7 +20,7 @@ _cache_path = None
 _file_cache = set(['import~'])
 
 # Cache version allows us to invalidate outdated cache data structures.
-_cache_version = 9
+_cache_version = 10
 _cache_lock = threading.RLock()
 _cache = {}
 
@@ -401,8 +401,10 @@ def cache_context(filename, context, source, extra_path):
                 extra_modules.append(module_file)
             elif is_package(import_key):
                 cache_key = (import_key, 'package')
-            else:
+            elif not cinput.endswith('.'):
                 cache_key = ('import~',)
+            else:
+                return None, extra_modules
 
     if not cache_key:
         obj = split_module(cinput.strip())
