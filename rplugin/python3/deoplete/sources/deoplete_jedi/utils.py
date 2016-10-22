@@ -1,10 +1,6 @@
 import os
 import re
 
-import logging
-
-log = logging.getLogger('server')
-
 
 def file_mtime(filename):
     """Get file modification time

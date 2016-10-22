@@ -7,7 +7,7 @@ import threading
 from .server import Client
 from .utils import file_mtime
 
-log = logging.getLogger('deoplete.jedi')
+log = logging.getLogger('deoplete.jedi.worker')
 workers = []
 work_queue = queue.Queue()
 comp_queue = queue.Queue()
@@ -25,7 +25,7 @@ class Worker(threading.Thread):
         self.in_queue = in_queue
         self.out_queue = out_queue
         super(Worker, self).__init__()
-        self.log = logging.getLogger('deoplete.jedi.%s' % self.name)
+        self.log = log.getChild(self.name)
 
     def completion_work(self, cache_key, extra_modules, source, line, col,
                         filename):
