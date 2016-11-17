@@ -36,9 +36,9 @@ Plug 'zchee/deoplete-jedi'
 - `g:deoplete#sources#jedi#statement_length`: Sets the maximum length of
   completion description text.  If this is exceeded, a simple description is
   used instead.  Default: `50`
-- `deoplete#sources#jedi#enable_cache`: Enables caching of completions for
+- `g:deoplete#sources#jedi#enable_cache`: Enables caching of completions for
   faster results.  Default: `1`
-- `deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
+- `g:deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
   Default: `0`
 - `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use
   for the completion server.  deoplete-jedi uses the first available `python`
