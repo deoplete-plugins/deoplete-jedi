@@ -5,6 +5,6 @@ all: test
 test: flake8
 
 flake8:
-	flake8
+	flake8 rplugin tests
 
 .PHONY: test flake8
