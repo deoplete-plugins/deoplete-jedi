@@ -1,5 +1,5 @@
-import queue
 import functools
+import queue
 
 try:
     import statistics
@@ -14,7 +14,7 @@ except ImportError:
 try:
     import time
     clock = time.perf_counter
-except:
+except Exception:
     import timeit
     clock = timeit.default_timer
 
