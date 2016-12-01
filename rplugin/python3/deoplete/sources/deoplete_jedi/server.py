@@ -10,16 +10,15 @@ should make deoplete-jedi's completions pretty fast and responsive.
 """
 from __future__ import unicode_literals
 
-import os
-import re
-import sys
-import time
-import struct
-import logging
 import argparse
 import functools
+import logging
+import os
+import re
+import struct
 import subprocess
-
+import sys
+import time
 from glob import glob
 
 # This is be possible because the path is inserted in deoplete_jedi.py as well

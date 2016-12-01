@@ -1,13 +1,14 @@
+import logging
 import os
 import re
 import sys
 import time
-import logging
 
-sys.path.insert(1, os.path.dirname(__file__))
+from deoplete_jedi import cache, profiler, utils, worker
 
 from .base import Base
-from deoplete_jedi import cache, profiler, utils, worker
+
+sys.path.insert(1, os.path.dirname(__file__))
 
 
 def sort_key(item):

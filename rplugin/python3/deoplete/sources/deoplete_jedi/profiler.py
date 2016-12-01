@@ -1,5 +1,5 @@
-import queue
 import functools
+import queue
 
 try:
     import statistics

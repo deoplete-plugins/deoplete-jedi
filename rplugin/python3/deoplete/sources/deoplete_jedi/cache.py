@@ -1,15 +1,14 @@
+import glob
+import hashlib
+import json
+import logging
 import os
 import re
-import glob
-import json
-import time
-import hashlib
-import logging
-import threading
 import subprocess
-
-from string import whitespace
+import threading
+import time
 from itertools import chain
+from string import whitespace
 
 from deoplete_jedi import utils
 

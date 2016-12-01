@@ -1,8 +1,8 @@
-import os
-import time
-import queue
 import logging
+import os
+import queue
 import threading
+import time
 
 from .server import Client
 from .utils import file_mtime
