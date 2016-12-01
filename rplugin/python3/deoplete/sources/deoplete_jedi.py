@@ -199,23 +199,26 @@ class Source(Base):
             # refresh cached items that did not have associated module files.
             refresh = True
 
-        if (not cached or refresh) and cache_key and cache_key[-1] == 'package':
-            # Make a synthetic completion for a module to guarantee the correct
-            # completions.
-            src = ['from {} import '.format(cache_key[0])]
-            self.debug('source: %r', src)
-            line = 1
-            col = len(src[0])
-
-        if cached is None:
-            wait = True
-
         # Extra options to pass to the server.
         options = {
             'cwd': context.get('cwd'),
             'extra_path': self.extra_path,
             'runtimepath': context.get('runtimepath'),
         }
+
+        if (not cached or refresh) and cache_key and cache_key[-1] == 'package':
+            # Create a synthetic completion for a module import as a fallback.
+            synthetic_src = ['from {} import '.format(cache_key[0])]
+            options.update({
+                'synthetic': {
+                    'src': synthetic_src,
+                    'line': 1,
+                    'col': len(synthetic_src),
+                }
+            })
+
+        if cached is None:
+            wait = True
 
         self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
         if cache_key and (not cached or refresh):
@@ -225,6 +228,7 @@ class Source(Base):
             while wait and time.time() - n < 2:
                 cached = cache.retrieve(cache_key)
                 if cached and cached.time >= n:
+                    self.debug('Stopped waiting')
                     break
                 time.sleep(0.01)
 
