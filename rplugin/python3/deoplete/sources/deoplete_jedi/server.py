@@ -129,7 +129,7 @@ def retry_completion(func):
                 log.warn('Retrying completion %r', func.__name__)
                 try:
                     return func(self, strip_decor(source), *args, **kwargs)
-                except:
+                except Exception:
                     pass
             log.warn('Failed completion %r', func.__name__)
     return wrapper
