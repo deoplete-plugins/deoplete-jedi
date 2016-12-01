@@ -4,11 +4,10 @@ import re
 import sys
 import time
 
+sys.path.insert(1, os.path.dirname(__file__)) # noqa: E261
 from deoplete_jedi import cache, profiler, utils, worker
 
 from .base import Base
-
-sys.path.insert(1, os.path.dirname(__file__))
 
 
 def sort_key(item):
