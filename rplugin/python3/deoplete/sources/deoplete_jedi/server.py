@@ -12,6 +12,7 @@ from __future__ import unicode_literals
 
 import argparse
 import functools
+from glob import glob
 import logging
 import os
 import re
@@ -19,7 +20,6 @@ import struct
 import subprocess
 import sys
 import time
-from glob import glob
 
 # This is be possible because the path is inserted in deoplete_jedi.py as well
 # as set in PYTHONPATH by the Client class.
