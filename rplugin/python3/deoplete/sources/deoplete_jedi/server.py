@@ -21,6 +21,8 @@ import sys
 import time
 from glob import glob
 
+from deoplete.deoplete import SourceInitError
+
 # This is be possible because the path is inserted in deoplete_jedi.py as well
 # as set in PYTHONPATH by the Client class.
 from deoplete_jedi import utils
@@ -489,7 +491,11 @@ class Client(object):
             self.cmd.extend(('--debug', debug[0], '--debug-level',
                              str(debug[1])))
 
-        self.restart()
+        try:
+            self.restart()
+        except Exception as exc:
+            raise SourceInitError('Failed to start server ({}): {}'.format(
+                ' '.join(self.cmd), exc))
 
     def shutdown(self):
         """Shut down the server."""
@@ -504,8 +510,17 @@ class Client(object):
         """
         self.shutdown()
         self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
-                                        stdout=subprocess.PIPE, env=self.env)
-        self.version = stream_read(self._server.stdout)
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        env=self.env)
+        # Might result in "pyenv: version `foo' is not installed (set by
+        # /cwd/.python-version)" on stderr.
+        try:
+            self.version = stream_read(self._server.stdout)
+        except StreamEmpty:
+            out, err = self._server.communicate()
+            raise Exception('Server exited with {}: error: {}'.format(
+                err, self._server.returncode))
         self._count = 0
 
     def completions(self, *args):
