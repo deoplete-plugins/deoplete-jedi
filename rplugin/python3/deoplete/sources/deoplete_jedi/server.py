@@ -21,8 +21,6 @@ import sys
 import time
 from glob import glob
 
-from deoplete.deoplete import SourceInitError
-
 # This is be possible because the path is inserted in deoplete_jedi.py as well
 # as set in PYTHONPATH by the Client class.
 from deoplete_jedi import utils
@@ -494,6 +492,7 @@ class Client(object):
         try:
             self.restart()
         except Exception as exc:
+            from deoplete.exceptions import SourceInitError
             raise SourceInitError('Failed to start server ({}): {}'.format(
                 ' '.join(self.cmd), exc))
 
