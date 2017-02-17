@@ -30,6 +30,20 @@ NeoBundle 'zchee/deoplete-jedi'
 Plug 'zchee/deoplete-jedi'
 ```
 
+**Note:** If you don't want to use a plugin manager, you will need to clone
+this repo recursively:
+
+```
+git clone --recursive https://github.com/zchee/deoplete-jedi
+```
+
+When updating the plugin, you will want to be sure that the Jedi submodule is
+kept up to date with:
+
+```
+git submodule update --init
+```
+
 
 ## Options
 
