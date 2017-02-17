@@ -467,7 +467,7 @@ class Client(object):
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({
-            'PYTHONPATH': ':'.join((jedi_path,
+            'PYTHONPATH': os.pathsep.join((jedi_path,
                                     os.path.dirname(os.path.dirname(__file__)))),
         })
 
