@@ -18,6 +18,7 @@ import re
 import struct
 import subprocess
 import sys
+import threading
 import time
 from glob import glob
 
@@ -464,6 +465,7 @@ class Client(object):
     def __init__(self, desc_len=0, short_types=False, show_docstring=False,
                  debug=False, python_path=None):
         self._server = None
+        self.restarting = threading.Lock()
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({
@@ -501,26 +503,28 @@ class Client(object):
         if self._server is not None and self._server.returncode is None:
             # Closing the server's stdin will cause it to exit.
             self._server.stdin.close()
+            self._server.kill()
 
     def restart(self):
         """Start or restart the server
 
         If a server is already running, shut it down.
         """
-        self.shutdown()
-        self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        env=self.env)
-        # Might result in "pyenv: version `foo' is not installed (set by
-        # /cwd/.python-version)" on stderr.
-        try:
-            self.version = stream_read(self._server.stdout)
-        except StreamEmpty:
-            out, err = self._server.communicate()
-            raise Exception('Server exited with {}: error: {}'.format(
-                err, self._server.returncode))
-        self._count = 0
+        with self.restarting:
+            self.shutdown()
+            self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                            env=self.env)
+            # Might result in "pyenv: version `foo' is not installed (set by
+            # /cwd/.python-version)" on stderr.
+            try:
+                self.version = stream_read(self._server.stdout)
+            except StreamEmpty:
+                out, err = self._server.communicate()
+                raise Exception('Server exited with {}: error: {}'.format(
+                    err, self._server.returncode))
+            self._count = 0
 
     def completions(self, *args):
         """Get completions from the server.
@@ -536,10 +540,12 @@ class Client(object):
             stream_write(self._server.stdin, args)
             return stream_read(self._server.stdout)
         except StreamError as exc:
-            log.error('Caught %s during handling completions(%s), '
-                      ' restarting server', exc, args)
-            self.restart()
-            time.sleep(0.2)
+            if self.restarting.acquire(False):
+                self.restarting.release()
+                log.error('Caught %s during handling completions(%s), '
+                          ' restarting server', exc, args)
+                self.restart()
+                time.sleep(0.2)
 
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ class Worker(threading.Thread):
                 if m and m not in modules and os.path.exists(m):
                     modules[m] = file_mtime(m)
 
-        return {
+        self.results = {
             'cache_key': cache_key,
             'time': time.time(),
             'modules': modules,
@@ -50,8 +50,25 @@ class Worker(threading.Thread):
             try:
                 work = self.in_queue.get()
                 self.log.debug('Got work')
-                self.out_queue.put(self.completion_work(*work), timeout=0.5)
-                self.log.debug('Completed work')
+
+                self.results = None
+                t = threading.Thread(target=self.completion_work, args=work)
+                t.start()
+                t.join(timeout=10)
+
+                if self.results:
+                    self.out_queue.put(self.results)
+                    self.log.debug('Completed work')
+                else:
+                    self.log.warn('Restarting server because it\'s taking '
+                                  'too long')
+                    # Kill all but the last queued job since they're most
+                    # likely a backlog that are no longer relevant.
+                    while self.in_queue.qsize() > 1:
+                        self.in_queue.get()
+                        self.in_queue.task_done()
+                    self._client.restart()
+                self.in_queue.task_done()
             except Exception:
                 self.log.debug('Worker error', exc_info=True)
 
