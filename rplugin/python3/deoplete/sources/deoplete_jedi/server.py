@@ -413,8 +413,6 @@ class Server(object):
 
         Returns (name, type, description, abbreviated)
         """
-        from jedi.api.classes import Completion
-
         name = comp.name
 
         type_ = comp.type
