@@ -208,12 +208,12 @@ class Source(Base):
 
         if (not cached or refresh) and cache_key and cache_key[-1] == 'package':
             # Create a synthetic completion for a module import as a fallback.
-            synthetic_src = ['from {} import '.format(cache_key[0])]
+            synthetic_src = ['import {0}; {0}.'.format(cache_key[0])]
             options.update({
                 'synthetic': {
                     'src': synthetic_src,
                     'line': 1,
-                    'col': len(synthetic_src),
+                    'col': len(synthetic_src[0]),
                 }
             })
 
