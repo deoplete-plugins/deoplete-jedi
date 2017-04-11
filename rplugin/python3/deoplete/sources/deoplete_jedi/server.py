@@ -127,12 +127,12 @@ def retry_completion(func):
             return func(self, source, *args, **kwargs)
         except Exception:
             if '@' in source:
-                log.warn('Retrying completion %r', func.__name__)
+                log.warn('Retrying completion %r', func.__name__, exc_info=True)
                 try:
                     return func(self, strip_decor(source), *args, **kwargs)
                 except Exception:
                     pass
-            log.warn('Failed completion %r', func.__name__)
+            log.warn('Failed completion %r', func.__name__, exc_info=True)
     return wrapper
 
 
@@ -196,7 +196,7 @@ class Server(object):
                 log.debug('Fallback to scoped completions')
                 out = self.scoped_completions(source, filename, cache_key[-2])
 
-            if not out and 'synthetic' in options:
+            if not out and isinstance(options, dict) and 'synthetic' in options:
                 synthetic = options.get('synthetic')
                 log.debug('Using synthetic completion: %r', synthetic)
                 out = self.script_completion(synthetic['src'],
@@ -413,15 +413,10 @@ class Server(object):
 
         Returns (name, type, description, abbreviated)
         """
-        from jedi.api.classes import Completion
-
         name = comp.name
 
-        if isinstance(comp, Completion):
-            type_, desc = [x.strip() for x in comp.description.split(':', 1)]
-        else:
-            type_ = comp.type
-            desc = comp.description
+        type_ = comp.type
+        desc = comp.description
 
         if type_ == 'instance' and desc.startswith(('builtins.', 'posix.')):
             # Simple description
