@@ -395,7 +395,11 @@ class Server(object):
                         continue
                     if '\\n' in desc:
                         desc = desc.replace('\\n', '\\x0A')
-                    params.append(desc)
+                    # Note: Hack for jedi param bugs
+                    if desc.startswith('param ') or desc == 'param':
+                        desc = desc[5:].strip()
+                    if desc:
+                        params.append(desc)
         except Exception:
             params = None
 
