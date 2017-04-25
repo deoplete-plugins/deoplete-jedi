@@ -234,6 +234,13 @@ class Source(Base):
         if not cached:
             wait = True
 
+        # Note: This waits a very short amount of time to give the server or
+        # cache a chance to reply.  If there's no reply during this period,
+        # empty results are returned and we defer to deoplete's async refresh.
+        # The current requests's async status is tracked in `_async_keys`.
+        # If the async cache result is older than 5 seconds, the completion
+        # request goes back to the default behavior of attempting to refresh as
+        # needed by the `refresh` and `wait` variables above.
         self.debug('Key: %r, Refresh: %r, Wait: %r, Async: %r', cache_key,
                    refresh, wait, cache_key in self._async_keys)
 
@@ -246,7 +253,7 @@ class Source(Base):
                 self._async_keys.remove(cache_key)
                 context['is_async'] = False
                 if time.time() - cached.time < 5:
-                    self.debug('[async] return completions: %r', cache_key)
+                    self.debug('[async] finished: %r', cache_key)
                     return self.finalize_cached(cache_key, filters, cached)
                 else:
                     self.debug('[async] outdated: %r', cache_key)
