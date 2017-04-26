@@ -1,0 +1,103 @@
+*deoplete-jedi.txt*	deoplete.nvim source for jedi.
+
+CONTENTS						*deoplete-jedi-contents*
+
+Install ....................... |deoplete-jedi-install|
+Options ....................... |deoplete-jedi-options|
+Virtual Environments .......... |deoplete-jedi-virtual-environments|
+
+==============================================================================
+INSTALL							*deoplete-jedi-install*
+
+Required:
+- Neovim and neovim/python-client
+    - https://github.com/neovim/neovim
+    - https://github.com/neovim/python-client
+- deoplete.nvim
+    - https://github.com/Shougo/deoplete.nvim
+- jedi
+    - https://github.com/davidhalter/jedi
+
+
+To install *deoplete-jedi* you can use a plugin manager: >
+
+    NeoBundle 'zchee/deoplete-jedi'
+
+    Plug 'zchee/deoplete-jedi'
+
+    call dein#add('zchee/deoplete-jedi')
+
+You can also install without a plugin manager: >
+
+    git clone --recursive https://github.com/zchee/deoplete-jedi
+
+Note: When updating the plugin, make sure the Jedi submodule
+is kept up to date :
+>
+    git submodule update --init
+>
+
+==============================================================================
+OPTIONS							*deoplete-jedi-options*
+
+				    *g:deoplete#sources#jedi#statement_length*
+g:deoplete#sources#jedi#statement_length
+                Sets the maximum length of completion description text.
+                If this is exceeded, a simple description is used instead.
+
+                Default: 50
+
+					*g:deoplete#sources#jedi#enable_cache*
+g:deoplete#sources#jedi#enable_cache
+                Enables caching of completions for faster results.
+
+                Default: 1
+
+					*g:deoplete#sources#jedi#show_docstring*
+g:deoplete#sources#jedi#show_docstring
+                Shows docstring in preview window.
+
+                Default: 0
+
+					*g:deoplete#sources#jedi#python_path*
+g:deoplete#sources#jedi#python_path
+                Set the Python interpreter path to use for
+                the completion server. *deoplete-jedi* uses the
+                first available python in $PATH.
+
+                Note: Use this only if you want use a specific python
+                interpreter. This has no effect if $VIRTUAL_ENV is
+                present in the environment.
+
+                Default: ''
+
+					*g:deoplete#sources#jedi#debug_server*
+g:deoplete#sources#jedi#debug_server
+                Enable logging from the server.
+
+                If set to 1, server messages are emitted to Deoplete's
+                log file. This can optionally be a string that points to
+                a file for separate logging.
+
+                Default: ''
+
+					*g:deoplete#sources#jedi#extra_path*
+g:deoplete#sources#jedi#extra_path
+                A list of extra paths to add to sys.path when
+                performing completions.
+
+                Default: ''
+
+==============================================================================
+VIRTUAL ENVIRONMENTS			    *deoplete-jedi-virtual-environments*
+
+If you are using virtualenv, it is recommended that you create environments
+specifically for Neovim. This way, you will not need to install the neovim
+package in each virtualenv.
+
+Once you have created them, add the following to your vimrc file: >
+
+    let g:python_host_prog = '/full/path/to/neovim2/bin/python'
+    let g:python3_host_prog = '/full/path/to/neovim3/bin/python'
+
+Note: deoplete only requires Python 3. See |nvim-python-quickstart|.
