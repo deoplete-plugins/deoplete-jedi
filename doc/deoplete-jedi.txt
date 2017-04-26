@@ -6,8 +6,8 @@ Install ....................... |deoplete-jedi-install|
 Options ....................... |deoplete-jedi-options|
 Virtual Environments .......... |deoplete-jedi-virtual-environments|
 
-==============================================================================
-INSTALL							*deoplete-jedi-install*
+=============================================================================
+INSTALL						*deoplete-jedi-install*
 
 Required:
 - Neovim and neovim/python-client
@@ -37,7 +37,7 @@ is kept up to date :
     git submodule update --init
 >
 
-==============================================================================
+=============================================================================
 OPTIONS							*deoplete-jedi-options*
 
 				    *g:deoplete#sources#jedi#statement_length*
@@ -62,7 +62,7 @@ g:deoplete#sources#jedi#show_docstring
 					*g:deoplete#sources#jedi#python_path*
 g:deoplete#sources#jedi#python_path
                 Set the Python interpreter path to use for
-                the completion server. *deoplete-jedi* uses the
+                the completion server. deoplete-jedi uses the
                 first available python in $PATH.
 
                 Note: Use this only if you want use a specific python
@@ -88,7 +88,7 @@ g:deoplete#sources#jedi#extra_path
 
                 Default: ''
 
-==============================================================================
+=============================================================================
 VIRTUAL ENVIRONMENTS			    *deoplete-jedi-virtual-environments*
 
 If you are using virtualenv, it is recommended that you create environments
@@ -100,4 +100,4 @@ Once you have created them, add the following to your vimrc file: >
     let g:python_host_prog = '/full/path/to/neovim2/bin/python'
     let g:python3_host_prog = '/full/path/to/neovim3/bin/python'
 
-Note: deoplete only requires Python 3. See |nvim-python-quickstart|.
+Note: deoplete only requires Python 3. See h: nvim-python-quickstart.
