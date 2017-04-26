@@ -29,6 +29,8 @@ class Source(Base):
                               r'^\s*@\w*$|'
                               r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
                               r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
+        self._async_keys = set()
+        self.workers_started = False
 
     def on_init(self, context):
         vars = context['vars']
@@ -45,14 +47,13 @@ class Source(Base):
         # aggressive cache.
         # Two workers may be needed if working with very large source files.
         self.worker_threads = vars.get(
-            'deoplete#sources#jedi#worker_threads', 1)
+            'deoplete#sources#jedi#worker_threads', 2)
         # Hard coded python interpreter location
         self.python_path = vars.get(
             'deoplete#sources#jedi#python_path', '')
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
 
-        self.workers_started = False
         self.boilerplate = []  # Completions that are included in all results
 
         log_file = ''
@@ -149,6 +150,19 @@ class Source(Base):
             'dup': 1,
         }
 
+    def finalize_cached(self, cache_key, filters, cached):
+        if cached:
+            if cached.completions is None:
+                out = self.mix_boilerplate([])
+            elif cache_key[-1] == 'vars':
+                out = self.mix_boilerplate(cached.completions)
+            else:
+                out = cached.completions
+            if filters:
+                out = (x for x in out if x['type'] in filters)
+            return [self.finalize(x) for x in sorted(out, key=sort_key)]
+        return []
+
     @profiler.profile
     def gather_candidates(self, context):
         refresh_boilerplate = False
@@ -217,20 +231,51 @@ class Source(Base):
                 }
             })
 
-        if cached is None:
+        if not cached:
             wait = True
 
-        self.debug('Key: %r, Refresh: %r, Wait: %r', cache_key, refresh, wait)
+        # Note: This waits a very short amount of time to give the server or
+        # cache a chance to reply.  If there's no reply during this period,
+        # empty results are returned and we defer to deoplete's async refresh.
+        # The current requests's async status is tracked in `_async_keys`.
+        # If the async cache result is older than 5 seconds, the completion
+        # request goes back to the default behavior of attempting to refresh as
+        # needed by the `refresh` and `wait` variables above.
+        self.debug('Key: %r, Refresh: %r, Wait: %r, Async: %r', cache_key,
+                   refresh, wait, cache_key in self._async_keys)
+
+        context['is_async'] = cache_key in self._async_keys
+        if context['is_async']:
+            if not cached:
+                self.debug('[async] waiting for completions: %r', cache_key)
+                return []
+            else:
+                self._async_keys.remove(cache_key)
+                context['is_async'] = False
+                if time.time() - cached.time < 5:
+                    self.debug('[async] finished: %r', cache_key)
+                    return self.finalize_cached(cache_key, filters, cached)
+                else:
+                    self.debug('[async] outdated: %r', cache_key)
+
         if cache_key and (not cached or refresh):
             n = time.time()
+            wait_complete = False
             worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
                                    line, col, str(buf.name), options))
-            while wait and time.time() - n < 2:
+            while wait and time.time() - n < 0.25:
                 cached = cache.retrieve(cache_key)
                 if cached and cached.time >= n:
-                    self.debug('Stopped waiting')
+                    self.debug('Got updated cache, stopped waiting.')
+                    wait_complete = True
                     break
                 time.sleep(0.01)
+
+            if wait and not wait_complete:
+                self._async_keys.add(cache_key)
+                context['is_async'] = True
+                self.debug('[async] deferred: %r', cache_key)
+                return []
 
         if refresh_boilerplate:
             # This should only occur the first time completions happen.
@@ -239,14 +284,4 @@ class Source(Base):
             self.debug('Refreshing boilerplate')
             worker.work_queue.put((('boilerplate~',), [], '', 1, 0, '', None))
 
-        if cached:
-            if cached.completions is None:
-                out = self.mix_boilerplate([])
-            elif cache_key[-1] == 'vars':
-                out = self.mix_boilerplate(cached.completions)
-            else:
-                out = cached.completions
-            if filters:
-                out = (x for x in out if x['type'] in filters)
-            return [self.finalize(x) for x in sorted(out, key=sort_key)]
-        return []
+        return self.finalize_cached(cache_key, filters, cached)
