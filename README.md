@@ -100,7 +100,7 @@ let g:python_host_prog = '/full/path/to/neovim2/bin/python'
 let g:python3_host_prog = '/full/path/to/neovim3/bin/python'
 ```
 
-Deoplete only requires Python 3.  See `:h nvim-python-quickstart` for more
+Deoplete only requires Python 3.  See `:h provider-python` for more
 information.
 
 ## Screenshots
