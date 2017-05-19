@@ -37,6 +37,8 @@ class Source(Base):
 
         self.statement_length = vars.get(
             'deoplete#sources#jedi#statement_length', 0)
+        self.server_timeout = vars.get(
+            'deoplete#sources#jedi#server_timeout', 10)
         self.use_short_types = vars.get(
             'deoplete#sources#jedi#short_types', False)
         self.show_docstring = vars.get(
@@ -77,7 +79,7 @@ class Source(Base):
             if self.python_path and 'VIRTUAL_ENV' not in os.environ:
                 cache.python_path = self.python_path
             worker.start(max(1, self.worker_threads), self.statement_length,
-                         self.use_short_types, self.show_docstring,
+                         self.server_timeout, self.use_short_types, self.show_docstring,
                          (log_file, root_log.level), self.python_path)
             cache.start_background(worker.comp_queue)
             self.workers_started = True

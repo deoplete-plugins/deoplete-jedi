@@ -16,12 +16,13 @@ comp_queue = queue.Queue()
 class Worker(threading.Thread):
     daemon = True
 
-    def __init__(self, in_queue, out_queue, desc_len=0,
+    def __init__(self, in_queue, out_queue, desc_len=0, server_timeout=10,
                  short_types=False, show_docstring=False, debug=False,
                  python_path=None):
         self._client = Client(desc_len, short_types, show_docstring, debug,
                               python_path)
 
+        self.server_timeout = server_timeout
         self.in_queue = in_queue
         self.out_queue = out_queue
         super(Worker, self).__init__()
@@ -54,7 +55,7 @@ class Worker(threading.Thread):
                 self.results = None
                 t = threading.Thread(target=self.completion_work, args=work)
                 t.start()
-                t.join(timeout=10)
+                t.join(timeout=self.server_timeout)
 
                 if self.results:
                     self.out_queue.put(self.results)
@@ -73,10 +74,10 @@ class Worker(threading.Thread):
                 self.log.debug('Worker error', exc_info=True)
 
 
-def start(count, desc_len=0, short_types=False, show_docstring=False,
-          debug=False, python_path=None):
+def start(count, desc_len=0, server_timeout=10, short_types=False,
+          show_docstring=False, debug=False, python_path=None):
     while count > 0:
-        t = Worker(work_queue, comp_queue, desc_len, short_types,
+        t = Worker(work_queue, comp_queue, desc_len, server_timeout, short_types,
                    show_docstring, debug, python_path)
         workers.append(t)
         t.start()
