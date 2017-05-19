@@ -54,7 +54,7 @@ class Worker(threading.Thread):
                 self.results = None
                 t = threading.Thread(target=self.completion_work, args=work)
                 t.start()
-                t.join(timeout=10)
+                t.join(timeout=30)
 
                 if self.results:
                     self.out_queue.put(self.results)
