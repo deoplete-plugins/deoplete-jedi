@@ -1,14 +1,14 @@
 import glob
 import hashlib
+from itertools import chain
 import json
 import logging
 import os
 import re
+from string import whitespace
 import subprocess
 import threading
 import time
-from itertools import chain
-from string import whitespace
 
 from deoplete_jedi import utils
 
