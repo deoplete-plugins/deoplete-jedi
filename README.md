@@ -47,6 +47,9 @@ git submodule update --init
 
 ## Options
 
+- `g:deoplete#sources#jedi#server_timeout`:  The timeout (in seconds) for jedi
+  server to workaround endless loop in jedi.  Increase it if you cannot get
+  completions for large package such as pandas (see #125).  Default: 10
 - `g:deoplete#sources#jedi#statement_length`: Sets the maximum length of
   completion description text.  If this is exceeded, a simple description is
   used instead.  Default: `50`
