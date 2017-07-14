@@ -380,7 +380,7 @@ def cache_context(filename, context, source, extra_path):
         cinput = context['input'].lstrip()
         m = re.search(r'^from\s+(\S+)(.*)', cinput)
         if m:
-            if m.group(2).isspace() or m.group(2).lstrip() in 'import':
+            if m.group(2).lstrip() in 'import':
                 cache_key = ('importkeyword~', )
                 return cache_key, extra_modules
             import_key = m.group(1) or 'import~'
