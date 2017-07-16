@@ -19,7 +19,7 @@ _cache_path = None
 _file_cache = set(['import~'])
 
 # Cache version allows us to invalidate outdated cache data structures.
-_cache_version = 14
+_cache_version = 15
 _cache_lock = threading.RLock()
 _cache = {}
 
@@ -378,8 +378,11 @@ def cache_context(filename, context, source, extra_path):
 
         import_key = 'import~'
         cinput = context['input'].lstrip()
-        m = re.search(r'^from\s+(\S+)', cinput)
+        m = re.search(r'^from\s+(\S+)(.*)', cinput)
         if m:
+            if m.group(2).lstrip() in 'import':
+                cache_key = ('importkeyword~', )
+                return cache_key, extra_modules
             import_key = m.group(1) or 'import~'
         elif cinput.startswith('import ') and cinput.rstrip().endswith('.'):
             import_key = re.sub(r'[^\s\w\.]', ' ', cinput.strip()).split()[-1]
