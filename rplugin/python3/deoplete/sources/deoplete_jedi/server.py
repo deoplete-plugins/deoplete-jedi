@@ -37,7 +37,9 @@ try:
 except ImportError:
     import pickle
 
-jedi_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'jedi')
+libpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+jedi_path = os.path.join(libpath, 'jedi')
+parso_path = os.path.join(libpath, 'parso')
 
 # Type mapping.  Empty values will use the key value instead.
 # Keep them 5 characters max to minimize required space to display.
@@ -469,7 +471,8 @@ class Client(object):
         self.env = os.environ.copy()
         self.env.update({
             'PYTHONPATH': os.pathsep.join(
-                (jedi_path, os.path.dirname(os.path.dirname(__file__)))),
+                (parso_path, jedi_path,
+                 os.path.dirname(os.path.dirname(__file__)))),
         })
 
         if not python_path:
