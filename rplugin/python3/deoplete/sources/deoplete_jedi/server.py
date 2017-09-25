@@ -37,7 +37,8 @@ try:
 except ImportError:
     import pickle
 
-libpath = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+libpath = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'vendored')
 jedi_path = os.path.join(libpath, 'jedi')
 parso_path = os.path.join(libpath, 'parso')
 
