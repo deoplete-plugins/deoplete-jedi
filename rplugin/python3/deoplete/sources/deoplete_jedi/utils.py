@@ -27,7 +27,7 @@ def module_file(dirname, suffix, base):
         if os.path.isfile(p):
             found = p
             break
-        if os.path.basename(search) == base:
+        if os.path.basename(search) == base or search == dirname:
             break
         search = os.path.dirname(search)
     return found
