@@ -12,8 +12,7 @@ from .base import Base
 
 def sort_key(item):
     w = item.get('name')
-    l = len(w)
-    z = l - len(w.lstrip('_'))
+    z = len(w) - len(w.lstrip('_'))
     return (('z' * z) + w.lower()[z:], len(w))
 
 
