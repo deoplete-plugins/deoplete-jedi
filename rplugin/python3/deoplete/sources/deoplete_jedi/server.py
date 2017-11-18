@@ -309,7 +309,10 @@ class Server(object):
         out = []
         tmp_filecache = {}
         for c in completions:
-            out.append(self.parse_completion(c, tmp_filecache))
+            try:
+                out.append(self.parse_completion(c, tmp_filecache))
+            except Exception as ex:
+                log.error('exception: ', ex)
         return out
 
     def get_parents(self, c):
