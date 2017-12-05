@@ -33,7 +33,7 @@ def profile(func):
 
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
-        if not self.debug_enabled:
+        if not self.is_debug_enabled:
             return func(self, *args, **kwargs)
         start = clock()
         ret = func(self, *args, **kwargs)
