@@ -476,14 +476,13 @@ class Client(object):
                  os.path.dirname(os.path.dirname(__file__)))),
         })
 
-        if not python_path:
-            prog = 'python'
-        else:
-            prog = python_path
-
         if 'VIRTUAL_ENV' in os.environ:
             self.env['VIRTUAL_ENV'] = os.getenv('VIRTUAL_ENV')
             prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
+        elif python_path:
+            prog = python_path
+        else:
+            prog = 'python'
 
         self.cmd = [prog, '-u', __file__, '--desc-length', str(desc_len)]
         if short_types:
