@@ -471,13 +471,22 @@ class Client(object):
         self._server = None
         self.restarting = threading.Lock()
         self.version = (0, 0, 0, 'final', 0)
+
+        # Build PYTHONPATH for the server process.
+        # This sets paths for Jedi/parso, and passes through paths for deoplete
+        # and neovim.
         self.env = os.environ.copy()
-        self.env.update({
-            'PYTHONPATH': os.pathsep.join(
-                (parso_path, jedi_path,
-                 os.path.dirname(os.path.dirname(deoplete.__file__)),
-                 os.path.dirname(os.path.dirname(__file__)))),
-        })
+        sys_path = [
+            parso_path, jedi_path,
+            os.path.dirname(os.path.dirname(deoplete.__file__)),
+            os.path.dirname(os.path.dirname(__file__))]
+        try:
+            import neovim
+        except ImportError:
+            pass
+        else:
+            sys_path += [os.path.dirname(os.path.dirname(neovim.__file__))]
+        self.env.update({'PYTHONPATH': os.pathsep.join(sys_path)})
 
         if 'VIRTUAL_ENV' in os.environ:
             self.env['VIRTUAL_ENV'] = os.getenv('VIRTUAL_ENV')
