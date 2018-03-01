@@ -60,7 +60,7 @@ class Source(Base):
         log_file = ''
         root_log = logging.getLogger('deoplete')
 
-        if self.debug_server is not None and self.debug_server:
+        if self.debug_server:
             self.is_debug_enabled = True
             if isinstance(self.debug_server, str):
                 log_file = self.debug_server
