@@ -4,6 +4,8 @@ import re
 import sys
 import time
 
+from deoplete.util import getlines
+
 sys.path.insert(1, os.path.dirname(__file__)) # noqa: E261
 from deoplete_jedi import cache, profiler, utils, worker
 
@@ -180,7 +182,7 @@ class Source(Base):
         line = context['position'][1]
         col = context['complete_position']
         buf = self.vim.current.buffer
-        src = buf[:]
+        src = getlines(self.vim)
 
         extra_modules = []
         cache_key = None
