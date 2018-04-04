@@ -466,15 +466,13 @@ class Client(object):
     """
     max_completion_count = 50
 
-    def __init__(self, desc_len=0, short_types=False, show_docstring=False,
-                 debug=False, python_path=None):
+    def __init__(self, python_path, desc_len=0, short_types=False, show_docstring=False,
+                 debug=False):
         self._server = None
         self.restarting = threading.Lock()
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
         self.env.update({'PYTHONPATH': self._make_pythonpath()})
-
-        python_path = python_path or 'python'
 
         self.cmd = [python_path, '-u', os.path.normpath(__file__),
                     '--desc-length', str(desc_len)]

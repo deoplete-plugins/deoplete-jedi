@@ -55,7 +55,7 @@ class Source(Base):
             'deoplete#sources#jedi#worker_threads', 2)
         # Hard coded python interpreter location
         self.python_path = vars.get(
-            'deoplete#sources#jedi#python_path', '')
+            'deoplete#sources#jedi#python_path', 'python')
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
 
@@ -80,9 +80,10 @@ class Source(Base):
 
         if not self.workers_started:
             cache.python_path = self.python_path
-            worker.start(max(1, self.worker_threads), self.statement_length,
-                         self.server_timeout, self.use_short_types, self.show_docstring,
-                         (log_file, root_log.level), self.python_path)
+            worker.start(self.python_path, max(1, self.worker_threads),
+                         self.statement_length, self.server_timeout,
+                         self.use_short_types, self.show_docstring,
+                         (log_file, root_log.level))
             cache.start_background(worker.comp_queue)
             self.workers_started = True
 

@@ -19,12 +19,11 @@ class Worker(threading.Thread):
     """Exception info being set in threads."""
     daemon = True
 
-    def __init__(self, in_queue, out_queue, desc_len=0, server_timeout=10,
-                 short_types=False, show_docstring=False, debug=False,
-                 python_path=None):
-        self._client = Client(desc_len, short_types, show_docstring, debug,
-                              python_path)
-
+    def __init__(self, python_path, in_queue, out_queue, desc_len=0,
+                 server_timeout=10, short_types=False, show_docstring=False,
+                 debug=False):
+        self._client = Client(python_path, desc_len, short_types,
+                              show_docstring, debug)
         self.server_timeout = server_timeout
         self.in_queue = in_queue
         self.out_queue = out_queue
@@ -93,11 +92,11 @@ class Worker(threading.Thread):
             raise self._exc_info[1]
 
 
-def start(count, desc_len=0, server_timeout=10, short_types=False,
-          show_docstring=False, debug=False, python_path=None):
+def start(python_path, count, desc_len=0, server_timeout=10, short_types=False,
+          show_docstring=False, debug=False):
     while count > 0:
-        t = Worker(work_queue, comp_queue, desc_len, server_timeout, short_types,
-                   show_docstring, debug, python_path)
+        t = Worker(python_path, work_queue, comp_queue, desc_len,
+                   server_timeout, short_types, show_docstring, debug)
         workers.append(t)
         t.start()
         log.debug('Started worker: %r', t)
