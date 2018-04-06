@@ -562,7 +562,7 @@ if __name__ == '__main__':
     if args.debug:
         log.removeHandler(nullHandler)
         formatter = logging.Formatter('%(asctime)s %(levelname)-8s '
-                                      '(%(name)s) %(message)s')
+                                      '[%(process)d] (%(name)s) %(message)s')
         handler = logging.FileHandler(args.debug)
         handler.setFormatter(formatter)
         handler.setLevel(args.debug_level)
