@@ -253,7 +253,7 @@ def split_module(text, default_value=None):
         if d and d not in '\'"':
             di = text.rfind(d)
             if di != -1:
-                text = text[di+1:]
+                text = text[di + 1:]
         else:
             return default_value
     m = re.search(r'([\S\.]+)$', text)

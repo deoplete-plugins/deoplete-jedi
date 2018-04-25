@@ -268,7 +268,7 @@ class Server(object):
         match_mod = mod_parts
         ml = len(mod_parts)
         for i in range(ml):
-            if path_parts[i-ml:] == mod_parts[:ml-i]:
+            if path_parts[i - ml:] == mod_parts[:ml - i]:
                 match_mod = mod_parts[-i:]
                 break
         log.debug('Remainder to match: %r', match_mod)
