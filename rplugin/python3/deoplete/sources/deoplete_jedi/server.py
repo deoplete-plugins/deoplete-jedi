@@ -362,8 +362,8 @@ class Server(object):
         seen = set()
         for c in completions:
             c_parents = self.get_parents(c)
-            if parent and (len(c_parents) > len(parent) or
-                           c_parents != parent[:len(c_parents)]):
+            if parent and (len(c_parents) > len(parent)
+                           or c_parents != parent[:len(c_parents)]):
                 continue
             if c.type == 'import' and c.full_name not in self.unresolved_imports:
                 resolved = self.resolve_import(c)

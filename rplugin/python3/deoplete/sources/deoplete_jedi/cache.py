@@ -256,7 +256,7 @@ def split_module(text, default_value=None):
                 text = text[di+1:]
         else:
             return default_value
-    m = re.search('([\S\.]+)$', text)
+    m = re.search(r'([\S\.]+)$', text)
     if m and '.' in m.group(1):
         return m.group(1).rsplit('.', 1)[0]
     return default_value
@@ -346,7 +346,7 @@ def is_package(module, refresh=False):
     return any(map(glob.glob, pglobs))
 
 
-def cache_context(filename, context, source, extra_path):
+def cache_context(filename, context, source, extra_path):  # noqa: C901
     """Caching based on context input.
 
     If the input is blank, it was triggered with `.` to get module completions.
