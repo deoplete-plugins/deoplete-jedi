@@ -237,7 +237,7 @@ def _balanced():
                     open_d = ''
         return not stack, open_d
     return balanced
-balanced = _balanced()
+balanced = _balanced()  # noqa: E305
 
 
 def split_module(text, default_value=None):
