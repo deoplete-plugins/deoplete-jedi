@@ -6,7 +6,7 @@ import time
 
 from deoplete.util import getlines
 
-sys.path.insert(1, os.path.dirname(__file__)) # noqa: E261
+sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
 from deoplete_jedi import cache, profiler, utils, worker
 
 from .base import Base
@@ -193,8 +193,8 @@ class Source(Base):
         # Inclusion filters for the results
         filters = []
 
-        if re.match('^\s*(from|import)\s+', context['input']) \
-                and not re.match('^\s*from\s+\S+\s+', context['input']):
+        if (re.match(r'^\s*(from|import)\s+', context['input'])
+                and not re.match(r'^\s*from\s+\S+\s+', context['input'])):
             # If starting an import, only show module results
             filters.append('module')
 
@@ -209,9 +209,9 @@ class Source(Base):
                 # The cache is still valid
                 refresh = False
 
-        if cache_key and (cache_key[-1] in ('dot', 'vars', 'import', 'import~') or
-                          (cached and cache_key[-1] == 'package' and
-                           not len(cached.modules))):
+        if cache_key and (cache_key[-1] in ('dot', 'vars', 'import', 'import~')
+                          or (cached and cache_key[-1] == 'package'
+                              and not len(cached.modules))):
             # Always refresh scoped variables and module imports.  Additionally
             # refresh cached items that did not have associated module files.
             refresh = True
