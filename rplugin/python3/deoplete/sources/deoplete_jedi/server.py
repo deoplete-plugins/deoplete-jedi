@@ -477,7 +477,6 @@ class Client(object):
         })
 
         if 'VIRTUAL_ENV' in os.environ:
-            self.env['VIRTUAL_ENV'] = os.getenv('VIRTUAL_ENV')
             prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
         elif python_path:
             prog = python_path
