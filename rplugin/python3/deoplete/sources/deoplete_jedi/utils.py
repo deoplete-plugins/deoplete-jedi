@@ -86,5 +86,5 @@ def jedi_walk(completions, depth=0, max_depth=5):
             if d.startswith('from ') and d.endswith('*') and depth < max_depth:
                 # Haven't determined the lowest Python 3 version required.
                 # If we determine 3.3, we can use `yield from`
-                for sub in jedi_walk(c.defined_names(), depth+1, max_depth):
+                for sub in jedi_walk(c.defined_names(), depth + 1, max_depth):
                     yield sub
