@@ -470,11 +470,7 @@ class Client(object):
         self.restarting = threading.Lock()
         self.version = (0, 0, 0, 'final', 0)
         self.env = os.environ.copy()
-        self.env.update({
-            'PYTHONPATH': os.pathsep.join(
-                (parso_path, jedi_path,
-                 os.path.dirname(os.path.dirname(__file__)))),
-        })
+        self.env.update({'PYTHONPATH': self._make_pythonpath()})
 
         if 'VIRTUAL_ENV' in os.environ:
             prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
@@ -547,6 +543,20 @@ class Client(object):
                           ' restarting server', exc, args)
                 self.restart()
                 time.sleep(0.2)
+
+    @staticmethod
+    def _make_pythonpath():
+        """Makes the PYTHONPATH environment variable to be passed to the server.
+
+        We append any paths that are prevalent during startup.
+        """
+        pythonpath = os.pathsep.join((
+            parso_path,
+            jedi_path,
+            os.path.dirname(os.path.dirname(__file__))))
+        if 'PYTHONPATH' in os.environ.keys():
+            pythonpath = os.pathsep.join((pythonpath, os.environ.get('PYTHONPATH')))
+        return pythonpath
 
 
 if __name__ == '__main__':
