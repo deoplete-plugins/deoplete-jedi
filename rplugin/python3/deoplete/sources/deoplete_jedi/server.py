@@ -479,7 +479,8 @@ class Client(object):
         else:
             prog = 'python'
 
-        self.cmd = [prog, '-u', __file__, '--desc-length', str(desc_len)]
+        self.cmd = [prog, '-u', os.path.normpath(__file__),
+                    '--desc-length', str(desc_len)]
         if short_types:
             self.cmd.append('--short-types')
         if show_docstring:
