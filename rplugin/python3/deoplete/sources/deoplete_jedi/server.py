@@ -473,7 +473,9 @@ class Client(object):
         self.env.update({'PYTHONPATH': self._make_pythonpath()})
 
         if 'VIRTUAL_ENV' in os.environ:
-            prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
+            prog = os.path.join(
+                self.env['VIRTUAL_ENV'],
+                ('Scripts' if os.name == 'nt' else 'bin'), 'python')
         elif python_path:
             prog = python_path
         else:
