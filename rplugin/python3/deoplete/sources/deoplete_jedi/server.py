@@ -473,13 +473,16 @@ class Client(object):
         self.env.update({'PYTHONPATH': self._make_pythonpath()})
 
         if 'VIRTUAL_ENV' in os.environ:
-            prog = os.path.join(self.env['VIRTUAL_ENV'], 'bin', 'python')
+            prog = os.path.join(
+                self.env['VIRTUAL_ENV'],
+                ('Scripts' if os.name == 'nt' else 'bin'), 'python')
         elif python_path:
             prog = python_path
         else:
             prog = 'python'
 
-        self.cmd = [prog, '-u', __file__, '--desc-length', str(desc_len)]
+        self.cmd = [prog, '-u', os.path.normpath(__file__),
+                    '--desc-length', str(desc_len)]
         if short_types:
             self.cmd.append('--short-types')
         if show_docstring:
