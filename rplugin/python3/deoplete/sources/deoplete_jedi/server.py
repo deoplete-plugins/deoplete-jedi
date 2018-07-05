@@ -512,7 +512,8 @@ class Client(object):
         """
         with self.restarting:
             self.shutdown()
-            self._server = subprocess.Popen(self.cmd, stdin=subprocess.PIPE,
+            self._server = subprocess.Popen(self.cmd,
+                                            stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
                                             stderr=subprocess.PIPE,
                                             env=self.env)
@@ -582,7 +583,7 @@ if __name__ == '__main__':
         log.setLevel(logging.DEBUG)
         log = log.getChild('jedi.server')
 
-    s = Server(args.desc_length, args.short_types, args.docstrings)
-    s.run()
+    server = Server(args.desc_length, args.short_types, args.docstrings)
+    server.run()
 else:
     log = log.getChild('jedi.client')
