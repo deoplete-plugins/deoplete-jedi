@@ -491,6 +491,8 @@ class Client(object):
             self.cmd.extend(('--debug', debug[0], '--debug-level',
                              str(debug[1])))
 
+        # Handle any exceptions from the first server startup, which might
+        # include PermissionDenied for an invalid python_path.
         try:
             self.restart()
         except Exception as exc:
@@ -521,10 +523,16 @@ class Client(object):
             # /cwd/.python-version)" on stderr.
             try:
                 self.version = stream_read(self._server.stdout)
-            except StreamEmpty:
+            except Exception:
+                import traceback
+                from deoplete.exceptions import SourceInitError
                 out, err = self._server.communicate()
-                raise Exception('Server exited with {}: error: {}'.format(
-                    err, self._server.returncode))
+                raise SourceInitError(
+                    'Server exited with {}. stderr=[{}], cmd={!r}.\n{}'.format(
+                        self._server.returncode,
+                        err.decode(),
+                        ' '.join(self.cmd),
+                        traceback.format_exc()))
             self._count = 0
 
     def completions(self, *args):
