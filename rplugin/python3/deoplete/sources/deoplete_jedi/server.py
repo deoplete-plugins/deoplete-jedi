@@ -226,6 +226,7 @@ class Server(object):
             log.debug('Input closed.  Shutting down.')
         except Exception:
             log.exception('Server Exception.  Shutting down.')
+            sys.exit(1)
 
     def find_extra_sys_path(self, filename):
         """Find the file's "root"
