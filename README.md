@@ -59,8 +59,7 @@ git submodule update --init
   Default: `0`
 - `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use
   for the completion server.  deoplete-jedi uses the first available `python`
-  in `$PATH`.  Use this only if you want use a specific Python interpreter.
-  This has no effect if `$VIRTUAL_ENV` is present in the environment.
+  in `$PATH` otherwise.
   **Note**: This is completely unrelated to configuring Neovim.
 - `g:deoplete#sources#jedi#debug_server`: Enable logging from the server.  If
   set to `1`, server messages are emitted to Deoplete's log file.  This can
