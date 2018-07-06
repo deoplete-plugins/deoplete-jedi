@@ -80,7 +80,14 @@ class StreamError(Exception):
 
 
 class StreamEmpty(StreamError):
-    """Empty stream data"""
+    """Empty stream data."""
+
+
+class ServerError(Exception):
+    """Error from crashed server.
+
+    Will have server's stderr as args[1].
+    """
 
 
 def stream_read(pipe):
@@ -541,6 +548,11 @@ class Client(object):
         try:
             stream_write(self._server.stdin, args)
             return stream_read(self._server.stdout)
+        except BrokenPipeError as exc:
+            out, err = self._server.communicate()
+            raise ServerError(
+                'Server exited with %s.' % self._server.returncode,
+                err.decode()) from exc
         except StreamError as exc:
             if self.restarting.acquire(False):
                 self.restarting.release()
