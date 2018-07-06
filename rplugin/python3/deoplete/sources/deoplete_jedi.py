@@ -79,8 +79,7 @@ class Source(Base):
             child_log.propagate = False
 
         if not self.workers_started:
-            if self.python_path and 'VIRTUAL_ENV' not in os.environ:
-                cache.python_path = self.python_path
+            cache.python_path = self.python_path
             worker.start(max(1, self.worker_threads), self.statement_length,
                          self.server_timeout, self.use_short_types, self.show_docstring,
                          (log_file, root_log.level), self.python_path)
