@@ -26,12 +26,6 @@ from glob import glob
 # as set in PYTHONPATH by the Client class.
 from deoplete_jedi import utils
 
-log = logging.getLogger('deoplete')
-nullHandler = logging.NullHandler()
-
-if not log.handlers:
-    log.addHandler(nullHandler)
-
 try:
     import cPickle as pickle
 except ImportError:
@@ -565,6 +559,16 @@ class Client(object):
 
 
 if __name__ == '__main__':
+    log = logging.getLogger('deoplete').getChild('jedi.server')
+    formatter = logging.Formatter('%(asctime)s %(levelname)-8s '
+                                  '[%(process)d] (%(name)s) %(message)s')
+
+    # Always log errors to stderr.
+    error_handler = logging.StreamHandler(sys.stderr)
+    error_handler.setFormatter(formatter)
+    error_handler.setLevel(logging.ERROR)
+    log.addHandler(error_handler)
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--desc-length', type=int)
     parser.add_argument('--short-types', action='store_true')
@@ -574,17 +578,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.debug:
-        log.removeHandler(nullHandler)
-        formatter = logging.Formatter('%(asctime)s %(levelname)-8s '
-                                      '[%(process)d] (%(name)s) %(message)s')
         handler = logging.FileHandler(args.debug)
         handler.setFormatter(formatter)
         handler.setLevel(args.debug_level)
         log.addHandler(handler)
         log.setLevel(logging.DEBUG)
-        log = log.getChild('jedi.server')
 
     server = Server(args.desc_length, args.short_types, args.docstrings)
     server.run()
 else:
-    log = log.getChild('jedi.client')
+    log = logging.getLogger('deoplete').getChild('jedi.client')
+    if not log.handlers:
+        log.addHandler(logging.NullHandler())
