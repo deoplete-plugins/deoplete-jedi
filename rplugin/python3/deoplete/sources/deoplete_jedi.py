@@ -4,10 +4,12 @@ import re
 import sys
 import time
 
+from deoplete.exceptions import SourceInitError
 from deoplete.util import getlines
 
 sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
-from deoplete_jedi import cache, profiler, utils, worker
+from deoplete_jedi import cache, profiler, utils, worker  # isort:skip
+from deoplete_jedi.server import ServerError  # isort:skip
 
 from .base import Base
 
@@ -165,8 +167,38 @@ class Source(Base):
             return [self.finalize(x) for x in sorted(out, key=sort_key)]
         return []
 
+    @classmethod
+    def _ensure_workers_are_alive(cls):
+        """Ensure that workers are alive.
+
+        Retrieves exception info for non-alive workers, and throws
+        ``SourceInitError`` in case no workers are left.
+        """
+        report_exc = None
+        for w in worker.workers:
+            if w.is_alive():
+                continue
+            try:
+                w.join()
+            except Exception as exc:
+                if not report_exc:
+                    report_exc = exc
+                w.log.warn('Worker %r died: %r' % (w, exc), exc_info=True)
+            worker.workers.remove(w)
+        if not worker.workers:
+            msg = 'All workers have crashed.  First exception: '
+            if isinstance(report_exc, ServerError):
+                stderr = report_exc.args[1]
+                stderr = '\n' + stderr if stderr else ''
+                msg += '%s, stderr=[%s]' % (report_exc.args[0], stderr)
+            else:
+                msg += repr(report_exc)
+            raise SourceInitError(msg)
+
     @profiler.profile
     def gather_candidates(self, context):
+        self._ensure_workers_are_alive()
+
         refresh_boilerplate = False
         if not self.boilerplate:
             bp = cache.retrieve(('boilerplate~',))

@@ -1,6 +1,7 @@
 import logging
 import os
 import queue
+import sys
 import threading
 import time
 
@@ -14,6 +15,8 @@ comp_queue = queue.Queue()
 
 
 class Worker(threading.Thread):
+    _exc_info = None
+    """Exception info being set in threads."""
     daemon = True
 
     def __init__(self, in_queue, out_queue, desc_len=0, server_timeout=10,
@@ -30,8 +33,12 @@ class Worker(threading.Thread):
 
     def completion_work(self, cache_key, extra_modules, source, line, col,
                         filename, options):
-        completions = self._client.completions(cache_key, source, line, col,
-                                               filename, options)
+        try:
+            completions = self._client.completions(cache_key, source, line, col,
+                                                   filename, options)
+        except Exception:
+            self._exc_info = sys.exc_info()
+            return
         modules = {f: file_mtime(f) for f in extra_modules}
         if completions is not None:
             for c in completions:
@@ -57,6 +64,9 @@ class Worker(threading.Thread):
                 t.start()
                 t.join(timeout=self.server_timeout)
 
+                if self._exc_info is not None:
+                    break
+
                 if self.results:
                     self.out_queue.put(self.results)
                     self.log.debug('Completed work')
@@ -72,6 +82,15 @@ class Worker(threading.Thread):
                 self.in_queue.task_done()
             except Exception:
                 self.log.debug('Worker error', exc_info=True)
+
+    def join(self):
+        """Join the thread and raise any exception from it.
+
+        This is used and picked up by :func:`Source._ensure_workers_are_alive`.
+        """
+        threading.Thread.join(self)
+        if self._exc_info:
+            raise self._exc_info[1]
 
 
 def start(count, desc_len=0, server_timeout=10, short_types=False,
