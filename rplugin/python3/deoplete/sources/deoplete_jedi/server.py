@@ -546,7 +546,7 @@ class Client(object):
         try:
             stream_write(self._server.stdin, args)
             return stream_read(self._server.stdout)
-        except BrokenPipeError as exc:
+        except BrokenPipeError:
             out, err = self._server.communicate()
             raise ServerError(
                 'Server exited with %s.' % self._server.returncode,
