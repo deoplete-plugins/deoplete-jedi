@@ -85,12 +85,12 @@ class Source(Base):
                 self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
-    def get_completions(self, source, line, col, filename, environment):
-        # TODO: skip creating Script instances if not necessary.
-        # https://github.com/davidhalter/jedi/issues/1166
-        completions = jedi.Script(source, line, col, filename,
-                                  environment=self._env).completions()
-        return completions
+    def get_script(self, source, line, col, filename, environment):
+        return jedi.Script(source, line, col, filename, environment=self._env)
+
+    @profiler.profile
+    def get_completions(self, script):
+        return script.completions()
 
     @profiler.profile
     def massage_completions(self, completions):
@@ -108,7 +108,6 @@ class Source(Base):
     def gather_candidates(self, context):
         python_path = context['vars'].get(
             'deoplete#sources#jedi#python_path', None)
-
         if python_path != self._python_path:
             self.set_env(python_path)
 
@@ -120,8 +119,11 @@ class Source(Base):
 
         self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
 
-        completions = self.get_completions(source, line, col, filename,
-                                           self._env)
+
+        script = jedi.Script(source, line, col, filename,
+                             environment=self._env)
+
+        completions = self.get_completions(script)
 
         return self.massage_completions(completions)
 
