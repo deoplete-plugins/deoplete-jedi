@@ -71,14 +71,10 @@ class Source(Base):
         """Cache for Jedi Environments."""
 
     @profiler.profile
-    def gather_candidates(self, context):
-        python_path = context['vars'].get(
-            'deoplete#sources#jedi#python_path', None)
-
-        if python_path != self._python_path:
-            if not python_path:
-                import shutil
-                python_path = shutil.which('python')
+    def set_env(self, python_path):
+        if not python_path:
+            import shutil
+            python_path = shutil.which('python')
             self._python_path = python_path
 
             try:
@@ -88,18 +84,16 @@ class Source(Base):
                     python_path)
                 self.debug('Using Jedi environment: %r', self._env)
 
-        line = context['position'][1]
-        col = context['complete_position']
-        source = '\n'.join(getlines(self.vim))
-        buf = self.vim.current.buffer
-        filename = str(buf.name)
-
-        self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
-
+    @profiler.profile
+    def get_completions(self, source, line, col, filename, environment):
         # TODO: skip creating Script instances if not necessary.
         # https://github.com/davidhalter/jedi/issues/1166
         completions = jedi.Script(source, line, col, filename,
                                   environment=self._env).completions()
+        return completions
+
+    @profiler.profile
+    def massage_completions(self, completions):
         out = []
         tmp_filecache = {}
         for c in completions:
@@ -109,6 +103,27 @@ class Source(Base):
         out = [self.finalize(x) for x in sorted(out, key=sort_key)]
 
         return out
+
+    @profiler.profile
+    def gather_candidates(self, context):
+        python_path = context['vars'].get(
+            'deoplete#sources#jedi#python_path', None)
+
+        if python_path != self._python_path:
+            self.set_env()
+
+        line = context['position'][1]
+        col = context['complete_position']
+        source = '\n'.join(getlines(self.vim))
+        buf = self.vim.current.buffer
+        filename = str(buf.name)
+
+        self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
+
+        completions = self.get_completions(source, line, col, filename,
+                                           self._env)
+
+        return self.massage_completions(completions)
 
     def get_complete_position(self, context):
         pattern = r'\w*$'
