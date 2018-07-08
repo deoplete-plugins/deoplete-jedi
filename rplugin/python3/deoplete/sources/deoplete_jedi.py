@@ -113,11 +113,18 @@ class Source(Base):
 
         line = context['position'][1]
         col = context['complete_position']
-        source = '\n'.join(getlines(self.vim))
         buf = self.vim.current.buffer
         filename = str(buf.name)
 
-        self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
+        # Only use source if buffer is modified, to skip transferring, joining,
+        # and splitting the buffer lines unnecessarily.
+        modified = buf.options['modified']
+        if not modified and os.path.exists(filename):
+            source = None
+        else:
+            source = '\n'.join(getlines(self.vim))
+        self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
+                   line, col, filename, modified)
 
         script = self.get_script(source, line, col, filename,
                                  environment=self._env)
