@@ -15,6 +15,7 @@ import functools
 import logging
 import os
 import re
+import shlex
 import struct
 import subprocess
 import sys
@@ -491,7 +492,13 @@ class Client(object):
         except Exception as exc:
             from deoplete.exceptions import SourceInitError
             raise SourceInitError('Failed to start server ({}): {}'.format(
-                ' '.join(self.cmd), exc))
+                self.cmd_string, exc))
+
+    @property
+    def cmd_string(self):
+        """Get self.cmd as a string to be run from a shell."""
+        cmd = ['PYTHONPATH=%s' % self.env['PYTHONPATH']] + self.cmd
+        return ' '.join(shlex.quote(x) for x in cmd)
 
     def shutdown(self):
         """Shut down the server."""
@@ -507,6 +514,7 @@ class Client(object):
         """
         with self.restarting:
             self.shutdown()
+            log.debug('Starting server process: %s' % (self.cmd_string,))
             self._server = subprocess.Popen(self.cmd,
                                             stdin=subprocess.PIPE,
                                             stdout=subprocess.PIPE,
