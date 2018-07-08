@@ -10,7 +10,7 @@ from .base import Base
 
 sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
 from deoplete_jedi import profiler  # isort:skip  # noqa: I100
-from deoplete_jedi.server import _types  # TODO: move  # isort:skip
+from deoplete_jedi.server import _types  # TODO(blueyed): move  # isort:skip
 
 
 # Insert Parso and Jedi from our submodules.
@@ -52,7 +52,7 @@ class Source(Base):
             'deoplete#sources#jedi#short_types', False)
         self.show_docstring = vars.get(
             'deoplete#sources#jedi#show_docstring', False)
-        # TODO
+        # TODO(blueyed)
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
 
