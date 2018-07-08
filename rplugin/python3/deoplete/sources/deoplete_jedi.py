@@ -2,16 +2,24 @@ import logging
 import os
 import re
 import sys
-import time
 
-from deoplete.exceptions import SourceInitError
 from deoplete.util import getlines
 
-sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
-from deoplete_jedi import cache, profiler, utils, worker  # isort:skip
-from deoplete_jedi.server import ServerError  # isort:skip
 
 from .base import Base
+
+sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
+from deoplete_jedi import profiler  # isort:skip  # noqa: I100
+from deoplete_jedi.server import _types  # TODO: move  # isort:skip
+
+
+# Insert Parso and Jedi from our submodules.
+libpath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'vendored')
+jedi_path = os.path.join(libpath, 'jedi')
+parso_path = os.path.join(libpath, 'parso')
+sys.path.insert(0, parso_path)
+sys.path.insert(0, jedi_path)
+import jedi  # noqa: E402
 
 
 def sort_key(item):
@@ -40,52 +48,67 @@ class Source(Base):
 
         self.statement_length = vars.get(
             'deoplete#sources#jedi#statement_length', 0)
-        self.server_timeout = vars.get(
-            'deoplete#sources#jedi#server_timeout', 10)
         self.use_short_types = vars.get(
             'deoplete#sources#jedi#short_types', False)
         self.show_docstring = vars.get(
             'deoplete#sources#jedi#show_docstring', False)
-        self.debug_server = vars.get(
-            'deoplete#sources#jedi#debug_server', None)
-        # Only one worker is really needed since deoplete-jedi has a pretty
-        # aggressive cache.
-        # Two workers may be needed if working with very large source files.
-        self.worker_threads = vars.get(
-            'deoplete#sources#jedi#worker_threads', 2)
-        # Hard coded python interpreter location
-        self.python_path = vars.get(
-            'deoplete#sources#jedi#python_path', 'python')
+        # TODO
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
 
-        self.boilerplate = []  # Completions that are included in all results
-
-        log_file = ''
-        root_log = logging.getLogger('deoplete')
-
-        if self.debug_server:
-            self.is_debug_enabled = True
-            if isinstance(self.debug_server, str):
-                log_file = self.debug_server
-            else:
-                for handler in root_log.handlers:
-                    if isinstance(handler, logging.FileHandler):
-                        log_file = handler.baseFilename
-                        break
-
         if not self.is_debug_enabled:
+            root_log = logging.getLogger('deoplete')
             child_log = root_log.getChild('jedi')
             child_log.propagate = False
 
-        if not self.workers_started:
-            cache.python_path = self.python_path
-            worker.start(self.python_path, max(1, self.worker_threads),
-                         self.statement_length, self.server_timeout,
-                         self.use_short_types, self.show_docstring,
-                         (log_file, root_log.level))
-            cache.start_background(worker.comp_queue)
-            self.workers_started = True
+        self._python_path = None
+        """Current Python executable."""
+
+        self._env = None
+        """Current Jedi Environment."""
+
+        self._envs = {}
+        """Cache for Jedi Environments."""
+
+    @profiler.profile
+    def gather_candidates(self, context):
+        python_path = context['vars'].get(
+            'deoplete#sources#jedi#python_path', None)
+
+        if python_path != self._python_path:
+            if not python_path:
+                import shutil
+                python_path = shutil.which('python')
+            self._python_path = python_path
+
+            try:
+                self._env = self._envs[python_path]
+            except KeyError:
+                self._env = self._envs[python_path] = jedi.api.environment.Environment(
+                    python_path)
+                self.debug('Using Jedi environment: %r', self._env)
+
+        line = context['position'][1]
+        col = context['complete_position']
+        source = '\n'.join(getlines(self.vim))
+        buf = self.vim.current.buffer
+        filename = str(buf.name)
+
+        self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
+
+        # TODO: skip creating Script instances if not necessary.
+        # https://github.com/davidhalter/jedi/issues/1166
+        completions = jedi.Script(source, line, col, filename,
+                                  environment=self._env).completions()
+        out = []
+        tmp_filecache = {}
+        for c in completions:
+            out.append(self.parse_completion(c, tmp_filecache))
+
+        # partly from old finalized_cached
+        out = [self.finalize(x) for x in sorted(out, key=sort_key)]
+
+        return out
 
     def get_complete_position(self, context):
         pattern = r'\w*$'
@@ -168,155 +191,77 @@ class Source(Base):
             return [self.finalize(x) for x in sorted(out, key=sort_key)]
         return []
 
-    @classmethod
-    def _ensure_workers_are_alive(cls):
-        """Ensure that workers are alive.
+    def completion_dict(self, name, type_, comp):
+        """Final construction of the completion dict."""
+        doc = comp.docstring()
+        i = doc.find('\n\n')
+        if i != -1:
+            doc = doc[i:]
 
-        Retrieves exception info for non-alive workers, and throws
-        ``SourceInitError`` in case no workers are left.
-        """
-        report_exc = None
-        for w in worker.workers:
-            if w.is_alive():
-                continue
-            try:
-                w.join()
-            except Exception as exc:
-                if not report_exc:
-                    report_exc = exc
-                w.log.warn('Worker %r died: %r' % (w, exc), exc_info=True)
-            worker.workers.remove(w)
-        if not worker.workers:
-            msg = 'All workers have crashed.  First exception: '
-            if isinstance(report_exc, ServerError):
-                stderr = report_exc.args[1]
-                stderr = '\n' + stderr if stderr else ''
-                msg += '%s, stderr=[%s]' % (report_exc.args[0], stderr)
-            else:
-                msg += repr(report_exc)
-            raise SourceInitError(msg)
+        params = None
+        try:
+            if type_ in ('function', 'class'):
+                params = []
+                for i, p in enumerate(comp.params):
+                    desc = p.description.strip()
+                    if i == 0 and desc == 'self':
+                        continue
+                    if '\\n' in desc:
+                        desc = desc.replace('\\n', '\\x0A')
+                    # Note: Hack for jedi param bugs
+                    if desc.startswith('param ') or desc == 'param':
+                        desc = desc[5:].strip()
+                    if desc:
+                        params.append(desc)
+        except Exception:
+            params = None
 
-    @profiler.profile
-    def gather_candidates(self, context):
-        self._ensure_workers_are_alive()
-
-        refresh_boilerplate = False
-        if not self.boilerplate:
-            bp = cache.retrieve(('boilerplate~',))
-            if bp:
-                self.boilerplate = bp.completions[:]
-                refresh_boilerplate = True
-            else:
-                # This should be the first time any completion happened, so
-                # `wait` will be True.
-                worker.work_queue.put((('boilerplate~',), [], '', 1, 0, '', None))
-
-        line = context['position'][1]
-        col = context['complete_position']
-        buf = self.vim.current.buffer
-        src = getlines(self.vim)
-
-        extra_modules = []
-        cache_key = None
-        cached = None
-        refresh = True
-        wait = False
-
-        # Inclusion filters for the results
-        filters = []
-
-        if (re.match(r'^\s*(from|import)\s+', context['input'])
-                and not re.match(r'^\s*from\s+\S+\s+', context['input'])):
-            # If starting an import, only show module results
-            filters.append('module')
-
-        cache_key, extra_modules = cache.cache_context(buf.name, context, src,
-                                                       self.extra_path)
-        cached = cache.retrieve(cache_key)
-        if cached and not cached.refresh:
-            modules = cached.modules
-            if all([filename in modules for filename in extra_modules]) \
-                    and all([utils.file_mtime(filename) == mtime
-                             for filename, mtime in modules.items()]):
-                # The cache is still valid
-                refresh = False
-
-        if cache_key and (cache_key[-1] in ('dot', 'vars', 'import', 'import~')
-                          or (cached and cache_key[-1] == 'package'
-                              and not len(cached.modules))):
-            # Always refresh scoped variables and module imports.  Additionally
-            # refresh cached items that did not have associated module files.
-            refresh = True
-
-        # Extra options to pass to the server.
-        options = {
-            'cwd': context.get('cwd'),
-            'extra_path': self.extra_path,
-            'runtimepath': context.get('runtimepath'),
+        return {
+            'module': comp.module_path,
+            'name': name,
+            'type': type_,
+            'short_type': _types.get(type_),
+            'doc': doc.strip(),
+            'params': params,
         }
 
-        if (not cached or refresh) and cache_key and cache_key[-1] == 'package':
-            # Create a synthetic completion for a module import as a fallback.
-            synthetic_src = 'import {0}; {0}.'.format(cache_key[0])
-            options.update({
-                'synthetic': {
-                    'src': synthetic_src,
-                    'line': 1,
-                    'col': len(synthetic_src),
-                }
-            })
+    def parse_completion(self, comp, cache):
+        """Return a tuple describing the completion.
 
-        if not cached:
-            wait = True
+        Returns (name, type, description, abbreviated)
+        """
+        name = comp.name
 
-        # Note: This waits a very short amount of time to give the server or
-        # cache a chance to reply.  If there's no reply during this period,
-        # empty results are returned and we defer to deoplete's async refresh.
-        # The current requests's async status is tracked in `_async_keys`.
-        # If the async cache result is older than 5 seconds, the completion
-        # request goes back to the default behavior of attempting to refresh as
-        # needed by the `refresh` and `wait` variables above.
-        self.debug('Key: %r, Refresh: %r, Wait: %r, Async: %r', cache_key,
-                   refresh, wait, cache_key in self._async_keys)
+        type_ = comp.type
+        desc = comp.description
 
-        context['is_async'] = cache_key in self._async_keys
-        if context['is_async']:
-            if not cached:
-                self.debug('[async] waiting for completions: %r', cache_key)
-                return []
-            else:
-                self._async_keys.remove(cache_key)
-                context['is_async'] = False
-                if time.time() - cached.time < 5:
-                    self.debug('[async] finished: %r', cache_key)
-                    return self.finalize_cached(cache_key, filters, cached)
-                else:
-                    self.debug('[async] outdated: %r', cache_key)
+        if type_ == 'instance' and desc.startswith(('builtins.', 'posix.')):
+            # Simple description
+            builtin_type = desc.rsplit('.', 1)[-1]
+            if builtin_type in _types:
+                return self.completion_dict(name, builtin_type, comp)
 
-        if cache_key and (not cached or refresh):
-            n = time.time()
-            wait_complete = False
-            worker.work_queue.put((cache_key, extra_modules, '\n'.join(src),
-                                   line, col, str(buf.name), options))
-            while wait and time.time() - n < 0.25:
-                cached = cache.retrieve(cache_key)
-                if cached and cached.time >= n:
-                    self.debug('Got updated cache, stopped waiting.')
-                    wait_complete = True
-                    break
-                time.sleep(0.01)
+        if type_ == 'class' and desc.startswith('builtins.'):
+            return self.completion_dict(name, type_, comp)
 
-            if wait and not wait_complete:
-                self._async_keys.add(cache_key)
-                context['is_async'] = True
-                self.debug('[async] deferred: %r', cache_key)
-                return []
+        if type_ == 'function':
+            if comp.module_path not in cache and comp.line and comp.line > 1 \
+                    and os.path.exists(comp.module_path):
+                with open(comp.module_path, 'r') as fp:
+                    cache[comp.module_path] = fp.readlines()
+            lines = cache.get(comp.module_path)
+            if isinstance(lines, list) and len(lines) > 1 \
+                    and comp.line < len(lines) and comp.line > 1:
+                # Check the function's decorators to check if it's decorated
+                # with @property
+                i = comp.line - 2
+                while i >= 0:
+                    line = lines[i].lstrip()
+                    if not line.startswith('@'):
+                        break
+                    if line.startswith('@property'):
+                        return self.completion_dict(name, 'property', comp)
+                    i -= 1
+            return self.completion_dict(name, type_, comp)
 
-        if refresh_boilerplate:
-            # This should only occur the first time completions happen.
-            # Refresh the boilerplate to ensure it's always up to date (just in
-            # case).
-            self.debug('Refreshing boilerplate')
-            worker.work_queue.put((('boilerplate~',), [], '', 1, 0, '', None))
-
-        return self.finalize_cached(cache_key, filters, cached)
+        return self.completion_dict(name, type_, comp)
