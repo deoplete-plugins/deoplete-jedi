@@ -23,7 +23,8 @@ _cache_version = 16
 _cache_lock = threading.RLock()
 _cache = {}
 
-python_path = 'python'
+# Python program to use, gets set from Source.on_init.
+python_path = None
 
 log = logging.getLogger('deoplete.jedi.cache')
 
