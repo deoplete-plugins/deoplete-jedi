@@ -77,12 +77,12 @@ class Source(Base):
             python_path = shutil.which('python')
             self._python_path = python_path
 
-            try:
-                self._env = self._envs[python_path]
-            except KeyError:
-                self._env = self._envs[python_path] = jedi.api.environment.Environment(
-                    python_path)
-                self.debug('Using Jedi environment: %r', self._env)
+        try:
+            self._env = self._envs[python_path]
+        except KeyError:
+            self._env = self._envs[python_path] = jedi.api.environment.Environment(
+                python_path)
+            self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
     def get_script(self, source, line, col, filename, environment):
