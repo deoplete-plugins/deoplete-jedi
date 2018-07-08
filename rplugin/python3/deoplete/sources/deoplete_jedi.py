@@ -110,7 +110,7 @@ class Source(Base):
             'deoplete#sources#jedi#python_path', None)
 
         if python_path != self._python_path:
-            self.set_env()
+            self.set_env(python_path)
 
         line = context['position'][1]
         col = context['complete_position']
