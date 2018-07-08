@@ -119,9 +119,8 @@ class Source(Base):
 
         self.debug('Line: %r, Col: %r, Filename: %r', line, col, filename)
 
-
-        script = jedi.Script(source, line, col, filename,
-                             environment=self._env)
+        script = self.get_script(source, line, col, filename,
+                                 environment=self._env)
 
         completions = self.get_completions(script)
 
