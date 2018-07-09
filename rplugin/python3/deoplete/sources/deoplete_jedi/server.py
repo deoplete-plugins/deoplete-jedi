@@ -555,7 +555,7 @@ class Client(object):
             out, err = self._server.communicate()
             raise ServerError(
                 'Server exited with %s.' % self._server.returncode,
-                err.decode()) from exc
+                err.decode())
         except StreamError as exc:
             if self.restarting.acquire(False):
                 self.restarting.release()
