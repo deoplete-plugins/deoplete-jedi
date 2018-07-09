@@ -210,6 +210,8 @@ class Server(object):
 
             if not out and cache_key[-1] in ('package', 'local'):
                 # The backup plan
+                # TODO(blueyed): remove this (far too less results for e.g.
+                # numpy), or at least do not cache it to disk.
                 log.debug('Fallback to module completions')
                 try:
                     out = self.module_completions(cache_key[0], sys.path)

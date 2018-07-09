@@ -19,7 +19,7 @@ _cache_path = None
 _file_cache = set(['import~'])
 
 # Cache version allows us to invalidate outdated cache data structures.
-_cache_version = 16
+_cache_version = 17
 _cache_lock = threading.RLock()
 _cache = {}
 
