@@ -125,6 +125,13 @@ def retry_completion(func):
     """Decorator to retry a completion
 
     A second attempt is made with decorators stripped from the source.
+
+    Older comment:
+    Decorators on incomplete functions cause an error to be raised by
+    Jedi.  I assume this is because Jedi is attempting to evaluate
+    the return value of the wrapped, but broken, function.
+    Our solution is to simply strip decorators from the source since
+    we are a completion service, not the syntax police.
     """
     @functools.wraps(func)
     def wrapper(self, source, *args, **kwargs):
@@ -183,16 +190,9 @@ class Server(object):
                 # Add extra paths if working on a Python remote plugin.
                 sys.path.extend(utils.rplugin_runtime_paths(options))
 
-            # Decorators on incomplete functions cause an error to be raised by
-            # Jedi.  I assume this is because Jedi is attempting to evaluate
-            # the return value of the wrapped, but broken, function.
-            # Our solution is to simply strip decorators from the source since
-            # we are a completion service, not the syntax police.
             out = self.script_completion(source, line, col, filename)
 
             if not out and cache_key[-1] == 'vars':
-                # Attempt scope completion.  If it fails, it should fall
-                # through to script completion.
                 log.debug('Fallback to scoped completions')
                 out = self.scoped_completions(source, filename, cache_key[-2])
 
