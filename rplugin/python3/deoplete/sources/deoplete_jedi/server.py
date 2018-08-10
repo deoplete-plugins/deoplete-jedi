@@ -164,8 +164,6 @@ class Server(object):
         settings.use_filesystem_cache = False
 
     def _loop(self):
-        from jedi.evaluate.sys_path import _get_venv_sitepackages
-
         while True:
             data = stream_read(sys.stdin)
             if not isinstance(data, tuple):
@@ -173,9 +171,6 @@ class Server(object):
 
             cache_key, source, line, col, filename, options = data
             orig_path = sys.path[:]
-            venv = os.getenv('VIRTUAL_ENV')
-            if venv:
-                sys.path.insert(0, _get_venv_sitepackages(venv))
             add_path = self.find_extra_sys_path(filename)
             if add_path and add_path not in sys.path:
                 # Add the found path to sys.path.  I'm not 100% certain if this
@@ -551,7 +546,7 @@ class Client(object):
         try:
             stream_write(self._server.stdin, args)
             return stream_read(self._server.stdout)
-        except BrokenPipeError as exc:
+        except BrokenPipeError:
             out, err = self._server.communicate()
             raise ServerError(
                 'Server exited with %s.' % self._server.returncode,
