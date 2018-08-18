@@ -159,11 +159,10 @@ class Source(Base):
         try:
             script = self.get_script(source, line, col, filename,
                                      environment=self._env)
+            completions = self.get_completions(script)
         except ValueError:
             # Ignore ValueError
             return []
-
-        completions = self.get_completions(script)
 
         return self.massage_completions(completions)
 
