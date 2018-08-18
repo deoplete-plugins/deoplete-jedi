@@ -156,8 +156,12 @@ class Source(Base):
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
                    line, col, filename, modified)
 
-        script = self.get_script(source, line, col, filename,
-                                 environment=self._env)
+        try:
+            script = self.get_script(source, line, col, filename,
+                                     environment=self._env)
+        except ValueError:
+            # Ignore ValueError
+            return []
 
         completions = self.get_completions(script)
 
