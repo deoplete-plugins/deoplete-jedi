@@ -264,27 +264,4 @@ class Source(Base):
             if builtin_type in _types:
                 return self.completion_dict(name, builtin_type, comp)
 
-        if type_ == 'class' and desc.startswith('builtins.'):
-            return self.completion_dict(name, type_, comp)
-
-        if type_ == 'function':
-            if comp.module_path not in cache and comp.line and comp.line > 1 \
-                    and os.path.exists(comp.module_path):
-                with open(comp.module_path, 'r') as fp:
-                    cache[comp.module_path] = fp.readlines()
-            lines = cache.get(comp.module_path)
-            if isinstance(lines, list) and len(lines) > 1 \
-                    and comp.line < len(lines) and comp.line > 1:
-                # Check the function's decorators to check if it's decorated
-                # with @property
-                i = comp.line - 2
-                while i >= 0:
-                    line = lines[i].lstrip()
-                    if not line.startswith('@'):
-                        break
-                    if line.startswith('@property'):
-                        return self.completion_dict(name, 'property', comp)
-                    i -= 1
-            return self.completion_dict(name, type_, comp)
-
         return self.completion_dict(name, type_, comp)
