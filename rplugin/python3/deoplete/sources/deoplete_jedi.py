@@ -10,7 +10,6 @@ from .base import Base
 
 sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
 from deoplete_jedi import profiler  # isort:skip  # noqa: I100
-from deoplete_jedi.server import _types  # TODO(blueyed): move  # isort:skip
 
 
 # Insert Parso and Jedi from our submodules.
@@ -20,6 +19,37 @@ parso_path = os.path.join(libpath, 'parso')
 sys.path.insert(0, parso_path)
 sys.path.insert(0, jedi_path)
 import jedi  # noqa: E402
+
+# Type mapping.  Empty values will use the key value instead.
+# Keep them 5 characters max to minimize required space to display.
+_types = {
+    'import': 'imprt',
+    'class': '',
+    'function': 'def',
+    'globalstmt': 'var',
+    'instance': 'var',
+    'statement': 'var',
+    'keyword': 'keywd',
+    'module': 'mod',
+    'param': 'arg',
+    'property': 'prop',
+    'bool': '',
+    'bytes': 'byte',
+    'complex': 'cmplx',
+    'dict': '',
+    'list': '',
+    'float': '',
+    'int': '',
+    'object': 'obj',
+    'set': '',
+    'slice': '',
+    'str': '',
+    'tuple': '',
+    'mappingproxy': 'dict',  # cls.__dict__
+    'member_descriptor': 'cattr',
+    'getset_descriptor': 'cprop',
+    'method_descriptor': 'cdef',
+}
 
 
 def sort_key(item):
