@@ -201,19 +201,6 @@ class Source(Base):
             'dup': 1,
         }
 
-    def finalize_cached(self, cache_key, filters, cached):
-        if cached:
-            if cached.completions is None:
-                out = self.mix_boilerplate([])
-            elif cache_key[-1] == 'vars':
-                out = self.mix_boilerplate(cached.completions)
-            else:
-                out = cached.completions
-            if filters:
-                out = (x for x in out if x['type'] in filters)
-            return [self.finalize(x) for x in sorted(out, key=sort_key)]
-        return []
-
     def completion_dict(self, name, type_, comp):
         """Final construction of the completion dict."""
         doc = comp.docstring()
