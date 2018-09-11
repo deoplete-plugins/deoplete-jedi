@@ -123,7 +123,7 @@ class Source(Base):
         return script.completions()
 
     @profiler.profile
-    def massage_completions(self, completions):
+    def finalize_completions(self, completions):
         out = []
         tmp_filecache = {}
         for c in completions:
@@ -164,7 +164,7 @@ class Source(Base):
             # Ignore ValueError
             return []
 
-        return self.massage_completions(completions)
+        return self.finalize_completions(completions)
 
     def get_complete_position(self, context):
         pattern = r'\w*$'
