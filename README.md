@@ -49,12 +49,15 @@ git submodule update --init
 
 - `g:deoplete#sources#jedi#server_timeout`:  The timeout (in seconds) for jedi
   server to workaround endless loop in jedi.  Increase it if you cannot get
-  completions for large package such as pandas (see #125).  Default: 10
+  completions for large package such as pandas (see #125).
+  Default: 10
 - `g:deoplete#sources#jedi#statement_length`: Sets the maximum length of
   completion description text.  If this is exceeded, a simple description is
-  used instead.  Default: `50`
-- `g:deoplete#sources#jedi#enable_cache`: Enables caching of completions for
-  faster results.  Default: `1`
+  used instead.
+  Default: `50`
+- `g:deoplete#sources#jedi#enable_typeinfo`: Enables type information of
+  completions.  If you disable it, you will get the faster results.
+  Default: `1`
 - `g:deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
   Default: `0`
 - `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use

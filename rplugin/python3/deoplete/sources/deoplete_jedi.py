@@ -82,6 +82,8 @@ class Source(Base):
             'deoplete#sources#jedi#short_types', False)
         self.show_docstring = vars.get(
             'deoplete#sources#jedi#show_docstring', False)
+        self.enable_typeinfo = vars.get(
+            'deoplete#sources#jedi#enable_typeinfo', True)
         # TODO(blueyed)
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
@@ -188,7 +190,7 @@ class Source(Base):
         abbr = item['name']
         desc = item['doc']
 
-        if item['params'] is not None:
+        if item['params']:
             sig = '{}({})'.format(item['name'], ', '.join(item['params']))
             sig_len = len(sig)
 
@@ -260,7 +262,6 @@ class Source(Base):
             params = None
 
         return {
-            'module': comp.module_path,
             'name': name,
             'type': type_,
             'short_type': _types.get(type_),
@@ -275,7 +276,10 @@ class Source(Base):
         """
         name = comp.name
 
-        type_ = comp.type
+        if self.enable_typeinfo:
+            type_ = comp.type
+        else:
+            type_ = ''
         if self.show_docstring:
             desc = comp.description
         else:
