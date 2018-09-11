@@ -153,16 +153,17 @@ class Source(Base):
             source = None
         else:
             source = '\n'.join(getlines(self.vim))
+
+        if (line != self.vim.call('line', '.') or
+                col >= self.vim.call('col', '$')):
+            return []
+
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
                    line, col, filename, modified)
 
-        try:
-            script = self.get_script(source, line, col, filename,
-                                     environment=self._env)
-            completions = self.get_completions(script)
-        except ValueError:
-            # Ignore ValueError
-            return []
+        script = self.get_script(source, line, col, filename,
+                                 environment=self._env)
+        completions = self.get_completions(script)
 
         return self.finalize_completions(completions)
 
