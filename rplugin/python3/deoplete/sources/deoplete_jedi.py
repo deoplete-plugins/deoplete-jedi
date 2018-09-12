@@ -20,6 +20,9 @@ sys.path.insert(0, parso_path)
 sys.path.insert(0, jedi_path)
 import jedi  # noqa: E402
 
+# Todo: workaround for Python 3.7
+jedi.api.environment._SUPPORTED_PYTHONS.insert(0, '3.7')
+
 # Type mapping.  Empty values will use the key value instead.
 # Keep them 5 characters max to minimize required space to display.
 _types = {
