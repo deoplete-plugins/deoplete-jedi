@@ -163,7 +163,7 @@ class Source(Base):
             source = '\n'.join(getlines(self.vim))
 
         if (line != self.vim.call('line', '.') or
-                col >= self.vim.call('col', '$')):
+                context['complete_position'] >= self.vim.call('col', '$')):
             return []
 
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
