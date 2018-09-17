@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from deoplete.util import getlines, bytepos2charpos
+from deoplete.util import bytepos2charpos, getlines
 
 
 from .base import Base
