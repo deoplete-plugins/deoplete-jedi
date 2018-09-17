@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-from deoplete.util import getlines
+from deoplete.util import getlines, bytepos2charpos
 
 
 from .base import Base
@@ -148,7 +148,9 @@ class Source(Base):
             self.set_env(python_path)
 
         line = context['position'][1]
-        col = context['complete_position']
+        col = bytepos2charpos(
+            context['encoding'], context['input'],
+            context['complete_position'])
         buf = self.vim.current.buffer
         filename = str(buf.name)
 
