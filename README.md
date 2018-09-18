@@ -47,10 +47,6 @@ git submodule update --init
 
 ## Options
 
-- `g:deoplete#sources#jedi#server_timeout`:  The timeout (in seconds) for jedi
-  server to workaround endless loop in jedi.  Increase it if you cannot get
-  completions for large package such as pandas (see #125).
-  Default: 10
 - `g:deoplete#sources#jedi#statement_length`: Sets the maximum length of
   completion description text.  If this is exceeded, a simple description is
   used instead.
@@ -64,10 +60,6 @@ git submodule update --init
   for the completion server.  It defaults to "python", i.e. the first
   available `python` in `$PATH`.
   **Note**: This is different from Neovim's Python (`:python`) in general.
-- `g:deoplete#sources#jedi#debug_server`: Enable logging from the server.  If
-  set to `1`, server messages are emitted to Deoplete's log file.  This can
-  optionally be a string that points to a file for separate logging.  The log
-  level will be inherited from `deoplete#enable_logging()`.
 - `g:deoplete#sources#jedi#extra_path`: A list of extra paths to add to
   `sys.path` when performing completions.
 
