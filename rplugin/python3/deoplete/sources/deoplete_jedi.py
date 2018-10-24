@@ -3,21 +3,16 @@ import os
 import re
 import sys
 
-from deoplete.util import bytepos2charpos, getlines
+from deoplete.util import bytepos2charpos, getlines, load_external_module
 
 
 from .base import Base
 
-sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
-from deoplete_jedi import profiler  # isort:skip  # noqa: I100
-
-
 # Insert Parso and Jedi from our submodules.
-libpath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'vendored')
-jedi_path = os.path.join(libpath, 'jedi')
-parso_path = os.path.join(libpath, 'parso')
-sys.path.insert(0, parso_path)
-sys.path.insert(0, jedi_path)
+load_external_module(__file__, 'vendored/jedi')
+load_external_module(__file__, 'vendored/parso')
+load_external_module(__file__, 'sources')
+from deoplete_jedi import profiler  # isort:skip  # noqa: I100
 import jedi  # noqa: E402
 
 # Type mapping.  Empty values will use the key value instead.
