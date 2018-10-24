@@ -13,6 +13,7 @@ load_external_module(__file__, 'vendored/parso')
 load_external_module(__file__, 'sources')
 
 from deoplete_jedi import profiler  # isort:skip  # noqa: I100
+
 import jedi  # noqa: E402
 
 # Type mapping.  Empty values will use the key value instead.
@@ -153,8 +154,8 @@ class Source(Base):
         else:
             source = '\n'.join(getlines(self.vim))
 
-        if (line != self.vim.call('line', '.') or
-                context['complete_position'] >= self.vim.call('col', '$')):
+        if (line != self.vim.call('line', '.')
+                or context['complete_position'] >= self.vim.call('col', '$')):
             return []
 
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
