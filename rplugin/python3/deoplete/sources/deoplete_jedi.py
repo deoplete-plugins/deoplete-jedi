@@ -1,23 +1,19 @@
 import logging
 import os
 import re
-import sys
 
-from deoplete.util import bytepos2charpos, getlines
+from deoplete.util import bytepos2charpos, getlines, load_external_module
 
 
 from .base import Base
 
-sys.path.insert(1, os.path.dirname(__file__))  # noqa: E261
+# Insert Parso and Jedi from our submodules.
+load_external_module(__file__, 'vendored/jedi')
+load_external_module(__file__, 'vendored/parso')
+load_external_module(__file__, 'sources')
+
 from deoplete_jedi import profiler  # isort:skip  # noqa: I100
 
-
-# Insert Parso and Jedi from our submodules.
-libpath = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'vendored')
-jedi_path = os.path.join(libpath, 'jedi')
-parso_path = os.path.join(libpath, 'parso')
-sys.path.insert(0, parso_path)
-sys.path.insert(0, jedi_path)
 import jedi  # noqa: E402
 
 # Type mapping.  Empty values will use the key value instead.
@@ -158,8 +154,8 @@ class Source(Base):
         else:
             source = '\n'.join(getlines(self.vim))
 
-        if (line != self.vim.call('line', '.') or
-                context['complete_position'] >= self.vim.call('col', '$')):
+        if (line != self.vim.call('line', '.')
+                or context['complete_position'] >= self.vim.call('col', '$')):
             return []
 
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
