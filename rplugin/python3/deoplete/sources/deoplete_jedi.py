@@ -80,6 +80,8 @@ class Source(Base):
             'deoplete#sources#jedi#show_docstring', False)
         self.enable_typeinfo = vars.get(
             'deoplete#sources#jedi#enable_typeinfo', True)
+        self.ignore_errors = vars.get(
+            'deoplete#sources#jedi#ignore_errors', False)
         # TODO(blueyed)
         self.extra_path = vars.get(
             'deoplete#sources#jedi#extra_path', [])
@@ -163,7 +165,12 @@ class Source(Base):
 
         script = self.get_script(source, line, col, filename,
                                  environment=self._env)
-        completions = self.get_completions(script)
+
+        try:
+            completions = self.get_completions(script)
+        except Exception:
+            if not self.ignore_errors:
+                raise
 
         return self.finalize_completions(completions)
 

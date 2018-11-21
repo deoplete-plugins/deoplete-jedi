@@ -62,6 +62,8 @@ git submodule update --init
   **Note**: This is different from Neovim's Python (`:python`) in general.
 - `g:deoplete#sources#jedi#extra_path`: A list of extra paths to add to
   `sys.path` when performing completions.
+- `g:deoplete#sources#jedi#ignore_errors`: Ignore jedi errors for completions.
+  Default: `0`
 
 
 ## Virtual Environments
