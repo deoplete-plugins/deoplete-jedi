@@ -168,6 +168,9 @@ class Source(Base):
 
         try:
             completions = self.get_completions(script)
+        except BaseException:
+            if not self.ignore_errors:
+                raise
         except Exception:
             if not self.ignore_errors:
                 raise
