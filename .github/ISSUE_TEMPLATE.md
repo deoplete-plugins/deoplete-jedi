@@ -17,7 +17,7 @@
 set runtimepath+=~/path/to/deoplete.nvim/
 set runtimepath+=~/path/to/deoplete-jedi/
 let g:deoplete#enable_at_startup = 1
-call deoplete#custom#set('jedi', 'debug_enabled', 1)
+call deoplete#custom#source('jedi', 'is_debug_enabled', 1)
 call deoplete#enable_logging('DEBUG', '/tmp/deoplete.log')
 ```
 
