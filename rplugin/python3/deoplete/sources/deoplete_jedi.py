@@ -171,9 +171,7 @@ class Source(Base):
         except BaseException:
             if not self.ignore_errors:
                 raise
-        except Exception:
-            if not self.ignore_errors:
-                raise
+            return []
 
         return self.finalize_completions(completions)
 
