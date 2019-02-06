@@ -3,12 +3,9 @@ dist: xenial
 language: python
 
 python:
-  - '3.5'
   - '3.7'
 
-cache:
-  directories:
-  - "$HOME/.cache/pip"
+cache: pip
 
 install:
   - pip3 install -q -U -r ./tests/requirements.txt
