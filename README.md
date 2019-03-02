@@ -25,16 +25,16 @@
 ## Install
 
 ```vim
-NeoBundle 'zchee/deoplete-jedi'
+NeoBundle 'deoplete-plugins/deoplete-jedi'
 # or
-Plug 'zchee/deoplete-jedi'
+Plug 'deoplete-plugins/deoplete-jedi'
 ```
 
 **Note:** If you don't want to use a plugin manager, you will need to clone
 this repo recursively:
 
 ```
-git clone --recursive https://github.com/zchee/deoplete-jedi
+git clone --recursive https://github.com/deoplete-plugins/deoplete-jedi
 ```
 
 When updating the plugin, you will want to be sure that the Jedi submodule is
