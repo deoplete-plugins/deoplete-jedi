@@ -2,10 +2,8 @@ import logging
 import os
 import re
 
-from deoplete.util import bytepos2charpos, getlines, load_external_module
-
-
 from deoplete.base.source import Base
+from deoplete.util import bytepos2charpos, getlines, load_external_module
 
 # Insert Parso and Jedi from our submodules.
 load_external_module(__file__, 'vendored/jedi')
