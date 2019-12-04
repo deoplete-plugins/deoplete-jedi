@@ -70,19 +70,32 @@ class Source(Base):
     def on_init(self, context):
         vars = context['vars']
 
-        self.statement_length = vars.get(
-            'deoplete#sources#jedi#statement_length', 0)
-        self.use_short_types = vars.get(
-            'deoplete#sources#jedi#short_types', False)
-        self.show_docstring = vars.get(
-            'deoplete#sources#jedi#show_docstring', False)
+        self.statement_length = 0
+        if 'deoplete#sources#jedi#statement_length' in vars:
+            self.statement_length = vars[
+                'deoplete#sources#jedi#statement_length']
+        self.use_short_types = False
+        if 'deoplete#sources#jedi#short_types' in vars:
+            self.use_short_types = vars[
+                'deoplete#sources#jedi#short_types']
+        self.show_docstring = False
+        if 'deoplete#sources#jedi#show_docstring' in vars:
+            self.use_short_types = vars[
+                'deoplete#sources#jedi#show_docstring']
         self.enable_typeinfo = vars.get(
             'deoplete#sources#jedi#enable_typeinfo', True)
-        self.ignore_errors = vars.get(
-            'deoplete#sources#jedi#ignore_errors', False)
+        if 'deoplete#sources#jedi#enable_typeinfo' in vars:
+            self.enable_typeinfo = vars[
+                'deoplete#sources#jedi#enable_typeinfo']
+        self.ignore_errors = False
+        if 'deoplete#sources#jedi#ignore_errors' in vars:
+            self.ignore_errors = vars[
+                'deoplete#sources#jedi#ignore_errors']
         # TODO(blueyed)
-        self.extra_path = vars.get(
-            'deoplete#sources#jedi#extra_path', [])
+        self.extra_path = []
+        if 'deoplete#sources#jedi#extra_path' in vars:
+            self.extra_path = vars[
+                'deoplete#sources#jedi#extra_path']
 
         if not self.is_debug_enabled:
             root_log = logging.getLogger('deoplete')
