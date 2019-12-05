@@ -146,8 +146,10 @@ class Source(Base):
 
     @profiler.profile
     def gather_candidates(self, context):
-        python_path = context['vars'].get(
-            'deoplete#sources#jedi#python_path', None)
+        python_path = None
+        if 'deoplete#sources#jedi#python_path' in context['vars']:
+            python_path = context['vars'][
+                'deoplete#sources#jedi#python_path']
         if python_path != self._python_path:
             self.set_env(python_path)
 
