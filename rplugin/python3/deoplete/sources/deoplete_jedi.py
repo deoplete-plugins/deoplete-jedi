@@ -90,6 +90,10 @@ class Source(Base):
         if 'deoplete#sources#jedi#ignore_errors' in vars:
             self.ignore_errors = vars[
                 'deoplete#sources#jedi#ignore_errors']
+        self.ignore_private_members = False
+        if 'deoplete#sources#jedi#ignore_private_members' in vars:
+            self.ignore_private_members = vars[
+                'deoplete#sources#jedi#ignore_private_members']
         # TODO(blueyed)
         self.extra_path = []
         if 'deoplete#sources#jedi#extra_path' in vars:
@@ -138,6 +142,9 @@ class Source(Base):
         tmp_filecache = {}
         for c in completions:
             out.append(self.parse_completion(c, tmp_filecache))
+
+        if self.ignore_private_members:
+            out = [x for x in out if not x['name'].startswith('__')]
 
         # partly from old finalized_cached
         out = [self.finalize(x) for x in sorted(out, key=sort_key)]

@@ -57,12 +57,15 @@ git submodule update --init
 - `g:deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
   Default: `0`
 - `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use
-  for the completion server.  It defaults to "python", i.e. the first
-  available `python` in `$PATH`.
+  for the completion server.  It defaults to "python", i.e. the first available
+  `python` in `$PATH`.
   **Note**: This is different from Neovim's Python (`:python`) in general.
 - `g:deoplete#sources#jedi#extra_path`: A list of extra paths to add to
   `sys.path` when performing completions.
 - `g:deoplete#sources#jedi#ignore_errors`: Ignore jedi errors for completions.
+  Default: `0`
+- `g:deoplete#sources#jedi#ignore_private_members`: Ignore private members from
+  completions.
   Default: `0`
 
 
