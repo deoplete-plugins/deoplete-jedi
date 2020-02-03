@@ -84,7 +84,7 @@ class Source(Base):
                 'deoplete#sources#jedi#short_types']
         self.show_docstring = False
         if 'deoplete#sources#jedi#show_docstring' in vars:
-            self.use_short_types = vars[
+            self.show_docstring = vars[
                 'deoplete#sources#jedi#show_docstring']
         self.ignore_errors = False
         if 'deoplete#sources#jedi#ignore_errors' in vars:
