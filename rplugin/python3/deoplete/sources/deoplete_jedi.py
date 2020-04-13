@@ -260,13 +260,17 @@ class Source(Base):
 
     def completion_dict(self, name, type_, comp):
         """Final construction of the completion dict."""
+
+        doc = ''
         if self.show_docstring:
-            doc = comp.docstring()
+            try:
+                doc = comp.docstring()
+            except BaseException:
+                if not self.ignore_errors:
+                    raise
             i = doc.find('\n\n')
             if i != -1:
                 doc = doc[i:]
-        else:
-            doc = ''
 
         params = None
         try:
