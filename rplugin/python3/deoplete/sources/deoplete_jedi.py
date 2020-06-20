@@ -10,7 +10,7 @@ load_external_module(__file__, 'vendored/jedi')
 load_external_module(__file__, 'vendored/parso')
 load_external_module(__file__, 'sources')
 
-from deoplete_jedi import profiler  # isort:skip  # noqa: I100
+from deoplete_jedi import profiler  # isort:skip  # noqa: E402
 
 import jedi  # noqa: E402
 
