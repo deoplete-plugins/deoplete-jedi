@@ -8,8 +8,8 @@ try:
 except ImportError:
     stdev = None
 
-    def mean(l):
-        return sum(l) / len(l)
+    def mean(li):
+        return sum(li) / len(li)
 
 try:
     import time
