@@ -1,6 +1,0 @@
-[submodule "rplugin/python3/deoplete/jedi"]
-	path = rplugin/python3/deoplete/vendored/jedi
-	url = https://github.com/davidhalter/jedi.git
-[submodule "rplugin/python3/deoplete/parso"]
-	path = rplugin/python3/deoplete/vendored/parso
-	url = https://github.com/davidhalter/parso.git

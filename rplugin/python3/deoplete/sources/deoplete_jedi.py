@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 import logging
 import os
 import re
@@ -5,14 +6,9 @@ import re
 from deoplete.base.source import Base
 from deoplete.util import bytepos2charpos, getlines, load_external_module
 
-# Insert Parso and Jedi from our submodules.
-load_external_module(__file__, 'vendored/jedi')
-load_external_module(__file__, 'vendored/parso')
 load_external_module(__file__, 'sources')
 
 from deoplete_jedi import profiler  # isort:skip  # noqa: E402
-
-import jedi  # noqa: E402
 
 # Type mapping.  Empty values will use the key value instead.
 # Keep them 5 characters max to minimize required space to display.
@@ -56,6 +52,7 @@ class Source(Base):
 
     def __init__(self, vim):
         Base.__init__(self, vim)
+
         self.name = 'jedi'
         self.mark = '[jedi]'
         self.rank = 500
@@ -64,8 +61,10 @@ class Source(Base):
                               r'^\s*@\w*$|'
                               r'^\s*from\s+[\w\.]*(?:\s+import\s+(?:\w*(?:,\s*)?)*)?|'
                               r'^\s*import\s+(?:[\w\.]*(?:,\s*)?)*')
+
         self._async_keys = set()
         self.workers_started = False
+        self._jedi = None
 
     def on_init(self, context):
         vars = context['vars']
@@ -114,6 +113,13 @@ class Source(Base):
         self._envs = {}
         """Cache for Jedi Environments."""
 
+        if find_spec('jedi'):
+            import jedi  # noqa: E402
+            self._jedi = jedi
+        else:
+            self.print_error(
+                'jedi module is not found.  You need to install it.')
+
     @profiler.profile
     def set_env(self, python_path):
         if not python_path:
@@ -124,13 +130,14 @@ class Source(Base):
         try:
             self._env = self._envs[python_path]
         except KeyError:
-            self._env = self._envs[python_path] = jedi.api.environment.Environment(
+            self._env = self._jedi.api.environment.Environment(
                 python_path)
             self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
     def get_script(self, source, line, col, filename, environment):
-        return jedi.Script(source, line, col, filename, environment=self._env)
+        return self._jedi.Script(
+            source, line, col, filename, environment=self._env)
 
     @profiler.profile
     def get_completions(self, script):
@@ -153,6 +160,9 @@ class Source(Base):
 
     @profiler.profile
     def gather_candidates(self, context):
+        if not self._jedi:
+            return []
+
         python_path = None
         if 'deoplete#sources#jedi#python_path' in context['vars']:
             python_path = context['vars'][
@@ -195,6 +205,9 @@ class Source(Base):
         return self.finalize_completions(completions)
 
     def get_complete_position(self, context):
+        if not self._jedi:
+            return -1
+
         pattern = r'\w*$'
         if context['input'].lstrip().startswith(('from ', 'import ')):
             m = re.search(r'[,\s]$', context['input'])

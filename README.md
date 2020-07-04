@@ -18,11 +18,17 @@
 - deoplete.nvim
   - https://github.com/Shougo/deoplete.nvim
 
-- jedi
+- jedi (the latest is recommended)
   - https://github.com/davidhalter/jedi
 
 
 ## Install
+
+```sh
+pip3 install --user jedi
+```
+
+And
 
 ```vim
 NeoBundle 'deoplete-plugins/deoplete-jedi'
