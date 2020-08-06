@@ -2,8 +2,8 @@ import copy
 import logging
 import os
 import re
-
 from importlib.util import find_spec
+
 from deoplete.base.source import Base
 from deoplete.util import bytepos2charpos, getlines, load_external_module
 
