@@ -1,7 +1,7 @@
+import copy
 import logging
 import os
 import re
-
 from importlib.util import find_spec
 
 from deoplete.base.source import Base
@@ -78,10 +78,14 @@ class Source(Base):
         if 'deoplete#sources#jedi#enable_typeinfo' in vars:
             self.enable_typeinfo = vars[
                 'deoplete#sources#jedi#enable_typeinfo']
-        self.use_short_types = False
-        if 'deoplete#sources#jedi#short_types' in vars:
-            self.use_short_types = vars[
-                'deoplete#sources#jedi#short_types']
+        self.enable_short_types = False
+        if 'deoplete#sources#jedi#enable_short_types' in vars:
+            self.enable_short_types = vars[
+                'deoplete#sources#jedi#enable_short_types']
+        self.short_types_map = copy.copy(_types)
+        if 'deoplete#sources#jedi#short_types_map' in vars:
+            self.short_types_map.update(vars[
+                'deoplete#sources#jedi#short_types_map'])
         self.show_docstring = False
         if 'deoplete#sources#jedi#show_docstring' in vars:
             self.show_docstring = vars[
@@ -258,7 +262,7 @@ class Source(Base):
 
             abbr = sig
 
-        if self.use_short_types:
+        if self.enable_short_types:
             kind = item['short_type'] or item['type']
         else:
             kind = item['type']
@@ -268,7 +272,6 @@ class Source(Base):
             'abbr': abbr,
             'kind': kind,
             'info': desc.strip(),
-            'menu': '[jedi] ',
             'dup': 1,
         }
 
@@ -307,7 +310,7 @@ class Source(Base):
         return {
             'name': name,
             'type': type_,
-            'short_type': _types.get(type_),
+            'short_type': self.short_types_map.get(type_),
             'doc': doc.strip(),
             'params': params,
         }
