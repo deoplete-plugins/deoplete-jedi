@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 import re
@@ -82,6 +83,10 @@ class Source(Base):
         if 'deoplete#sources#jedi#enable_short_types' in vars:
             self.enable_short_types = vars[
                 'deoplete#sources#jedi#enable_short_types']
+        self.short_types_map = copy.copy(_types)
+        if 'deoplete#sources#jedi#short_types_map' in vars:
+            self.short_types_map.update(vars[
+                'deoplete#sources#jedi#short_types_map'])
         self.show_docstring = False
         if 'deoplete#sources#jedi#show_docstring' in vars:
             self.show_docstring = vars[
@@ -306,7 +311,7 @@ class Source(Base):
         return {
             'name': name,
             'type': type_,
-            'short_type': _types.get(type_),
+            'short_type': self.short_types_map.get(type_),
             'doc': doc.strip(),
             'params': params,
         }
