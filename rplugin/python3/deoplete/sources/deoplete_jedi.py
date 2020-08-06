@@ -56,7 +56,7 @@ class Source(Base):
         Base.__init__(self, vim)
 
         self.name = 'jedi'
-        self.mark = 'jedi'
+        self.mark = '[jedi]'
         self.rank = 500
         self.filetypes = ['python', 'cython', 'pyrex']
         self.input_pattern = (r'[\w\)\]\}\'\"]+\.\w*$|'
