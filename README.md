@@ -60,6 +60,8 @@ git submodule update --init
 - `g:deoplete#sources#jedi#enable_typeinfo`: Enables type information of
   completions.  If you disable it, you will get the faster results.
   Default: `1`
+- `g:deoplete#sources#jedi#enable_short_types`: Enables short completion types.
+  Default: `0`
 - `g:deoplete#sources#jedi#show_docstring`: Shows docstring in preview window.
   Default: `0`
 - `g:deoplete#sources#jedi#python_path`: Set the Python interpreter path to use

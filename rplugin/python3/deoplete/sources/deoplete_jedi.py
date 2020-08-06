@@ -78,10 +78,10 @@ class Source(Base):
         if 'deoplete#sources#jedi#enable_typeinfo' in vars:
             self.enable_typeinfo = vars[
                 'deoplete#sources#jedi#enable_typeinfo']
-        self.use_short_types = False
-        if 'deoplete#sources#jedi#short_types' in vars:
-            self.use_short_types = vars[
-                'deoplete#sources#jedi#short_types']
+        self.enable_short_types = False
+        if 'deoplete#sources#jedi#enable_short_types' in vars:
+            self.enable_short_types = vars[
+                'deoplete#sources#jedi#enable_short_types']
         self.show_docstring = False
         if 'deoplete#sources#jedi#show_docstring' in vars:
             self.show_docstring = vars[
@@ -258,7 +258,7 @@ class Source(Base):
 
             abbr = sig
 
-        if self.use_short_types:
+        if self.enable_short_types:
             kind = item['short_type'] or item['type']
         else:
             kind = item['type']
