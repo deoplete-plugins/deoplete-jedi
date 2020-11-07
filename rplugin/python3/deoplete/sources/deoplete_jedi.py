@@ -136,7 +136,7 @@ class Source(Base):
             self._env = self._envs[python_path]
         except KeyError:
             self._env = self._jedi.api.environment.Environment(
-                    python_path, env_vars={'PYTHONPATH': str(self.extra_path)})
+                python_path, env_vars={'PYTHONPATH': str(self.extra_path)})
             self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
