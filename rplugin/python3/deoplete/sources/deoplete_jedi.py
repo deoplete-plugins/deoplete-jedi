@@ -140,13 +140,12 @@ class Source(Base):
             self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
-    def get_script(self, source, line, col, filename, environment):
-        return self._jedi.Script(
-            source, line, col, filename, environment=self._env)
+    def get_script(self, source, filename, environment):
+        return self._jedi.Script(code=source, path=filename, environment=self._env)
 
     @profiler.profile
-    def get_completions(self, script):
-        return script.completions()
+    def get_completions(self, script, line, col):
+        return script.complete(line, col)
 
     @profiler.profile
     def finalize_completions(self, completions):
@@ -197,11 +196,10 @@ class Source(Base):
         self.debug('Line: %r, Col: %r, Filename: %r, modified: %r',
                    line, col, filename, modified)
 
-        script = self.get_script(source, line, col, filename,
-                                 environment=self._env)
+        script = self.get_script(source, filename, environment=self._env)
 
         try:
-            completions = self.get_completions(script)
+            completions = self.get_completions(script, line, col)
         except BaseException:
             if not self.ignore_errors:
                 raise
