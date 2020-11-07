@@ -99,7 +99,7 @@ class Source(Base):
             self.ignore_private_members = vars[
                 'deoplete#sources#jedi#ignore_private_members']
         # TODO(blueyed)
-        self.extra_path = []
+        self.extra_path = ''
         if 'deoplete#sources#jedi#extra_path' in vars:
             self.extra_path = vars[
                 'deoplete#sources#jedi#extra_path']
@@ -136,7 +136,7 @@ class Source(Base):
             self._env = self._envs[python_path]
         except KeyError:
             self._env = self._jedi.api.environment.Environment(
-                python_path)
+                    python_path, env_vars={'PYTHONPATH': str(self.extra_path)})
             self.debug('Using Jedi environment: %r', self._env)
 
     @profiler.profile
@@ -171,7 +171,7 @@ class Source(Base):
         if 'deoplete#sources#jedi#python_path' in context['vars']:
             python_path = context['vars'][
                 'deoplete#sources#jedi#python_path']
-        if python_path != self._python_path:
+        if python_path != self._python_path or self.extra_path:
             self.set_env(python_path)
 
         line = context['position'][1]
