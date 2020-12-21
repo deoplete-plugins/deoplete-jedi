@@ -25,7 +25,7 @@
 ## Install
 
 ```sh
-pip3 install --user jedi
+pip3 install --user jedi --upgrade
 ```
 
 And
