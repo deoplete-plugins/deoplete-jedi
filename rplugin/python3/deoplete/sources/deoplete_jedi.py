@@ -90,7 +90,7 @@ class Source(Base):
         if 'deoplete#sources#jedi#show_docstring' in vars:
             self.show_docstring = vars[
                 'deoplete#sources#jedi#show_docstring']
-        self.ignore_errors = False
+        self.ignore_errors = True
         if 'deoplete#sources#jedi#ignore_errors' in vars:
             self.ignore_errors = vars[
                 'deoplete#sources#jedi#ignore_errors']
@@ -200,7 +200,7 @@ class Source(Base):
 
         try:
             completions = self.get_completions(script, line, col)
-        except BaseException:
+        except:
             if not self.ignore_errors:
                 raise
             return []

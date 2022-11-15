@@ -90,7 +90,7 @@ git submodule update --init
 - `g:deoplete#sources#jedi#extra_path`: A list of extra paths to add to
   `sys.path` when performing completions.
 - `g:deoplete#sources#jedi#ignore_errors`: Ignore jedi errors for completions.
-  Default: `0`
+  Default: `1`
 - `g:deoplete#sources#jedi#ignore_private_members`: Ignore private members from
   completions.
   Default: `0`
